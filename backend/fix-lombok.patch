@@ -1,0 +1,14 @@
+--- pom.xml	2024-05-01 12:00:00.000000000 +0000
++++ pom.xml	2024-05-01 12:00:00.000000000 +0000
+@@ -122,6 +122,11 @@
+                             <version>1.18.34</version>
+                         </path>
+                     </annotationProcessorPaths>
++                    <compilerArgs>
++                        <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED</arg>
++                        <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED</arg>
++                        <arg>-J--add-opens=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED</arg>
++                    </compilerArgs>
+                 </configuration>
+             </plugin>
+             <plugin>

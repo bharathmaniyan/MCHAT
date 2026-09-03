@@ -1,0 +1,8 @@
+--- pom.xml	2024-05-01 12:00:00.000000000 +0000
++++ pom.xml	2024-05-01 12:00:00.000000000 +0000
+@@ -116,6 +116,7 @@
+                     <source>17</source>
+                     <target>17</target>
++                    <fork>true</fork>
+                     <annotationProcessorPaths>
+                         <path>
