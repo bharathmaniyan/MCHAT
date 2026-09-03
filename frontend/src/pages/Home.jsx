@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Sparkles, Building2, Star, MapIcon, Grid, List as ListIcon, Filter } from 'lucide-react';
+import { Sparkles, Building2, MapIcon, Grid, Filter, ArrowDownRight, ScanLine, Ticket } from 'lucide-react';
 import { publicAPI } from '../services/api';
 import toast from 'react-hot-toast';
 
@@ -19,19 +19,15 @@ const Home = () => {
   const [filters, setFilters] = useState({});
   const [viewMode, setViewMode] = useState('grid'); // grid, map
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-
-
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const fetchMuseums = useCallback(async () => {
     setLoading(true);
     try {
-      // In a real app, we would pass searchParams and filters to the API
       const res = await publicAPI.searchMuseums();
       let list = res?.data ?? res ?? [];
       list = Array.isArray(list) ? list : [];
       
-      // Client-side filtering for MVP
       if (searchParams.query) {
         const q = searchParams.query.toLowerCase();
         list = list.filter(m => m.museumName?.toLowerCase().includes(q) || m.tagline?.toLowerCase().includes(q));
@@ -71,27 +67,49 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* ── HERO ── */}
-      <div className="relative pt-24 pb-32 flex items-center justify-center overflow-hidden bg-gradient-to-br from-indigo-900 via-purple-900 to-indigo-950">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1518998053401-a4141508db8c?auto=format&fit=crop&q=80&w=2000')] bg-cover bg-center opacity-20 mix-blend-overlay"></div>
+      <div className="relative min-h-[620px] pt-28 pb-44 flex items-center overflow-hidden bg-stone-950">
+        <div className="absolute inset-0 bg-[url(/images/landing/hero-louvre.jpg)] bg-cover bg-center"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-stone-950 via-stone-900/85 to-stone-950/35"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_22%,rgba(251,191,36,0.20),transparent_27%)]"></div>
+        <div className="absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-gray-50 via-gray-50/65 to-transparent"></div>
+        <div className="absolute right-[8%] top-[22%] hidden lg:block h-72 w-56 rounded-t-[9rem] border border-white/30 bg-white/[0.06] backdrop-blur-[4px] p-2 shadow-2xl">
+          <div className="w-full h-full rounded-t-[9rem] overflow-hidden rounded-b-2xl">
+            <img src="/images/landing/renaissance-hall.jpg" alt="Renaissance Hall" className="w-full h-full object-cover" />
+          </div>
+        </div>
         
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full text-white/90 mb-8 border border-white/20">
-            <Sparkles className="h-4 w-4 text-yellow-400" />
-            <span className="text-sm font-medium">Discover the world's finest collections</span>
+        <div className="relative z-10 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+          <div className="max-w-3xl">
+            <div className="inline-flex items-center gap-3 text-amber-200 mb-7">
+              <span className="h-px w-10 bg-amber-300"></span>
+              <span className="text-xs font-bold tracking-[0.24em] uppercase">Your cultural calendar</span>
+            </div>
+
+            <h1 className="font-serif text-5xl leading-[0.94] sm:text-6xl md:text-8xl text-white tracking-[-0.055em] drop-shadow-lg">
+              Make time for<br />
+              <span className="italic font-normal text-amber-100">wonder.</span>
+            </h1>
+
+            <div className="mt-8 flex max-w-xl flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+              <p className="max-w-sm text-base leading-7 text-stone-200 sm:text-lg">
+                Find the exhibitions worth leaving the house for, then keep your entry ticket in your pocket.
+              </p>
+              <div className="flex items-center gap-3 text-sm font-medium text-white/90 shrink-0">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full border border-white/30 bg-white/10"><ArrowDownRight className="h-4 w-4" /></span>
+                Browse nearby
+              </div>
+            </div>
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-extrabold text-white mb-6 tracking-tight">
-            Explore Culture & History
-          </h1>
-
-          <p className="text-xl text-white/80 mb-12 max-w-2xl mx-auto font-light">
-            Book instant tickets to museums, galleries, and heritage sites. Skip the line and dive into discovery.
-          </p>
+          <div className="mt-12 flex flex-wrap gap-x-7 gap-y-3 text-xs font-semibold tracking-wide text-stone-200">
+            <span className="flex items-center gap-2"><Ticket className="h-4 w-4 text-amber-300" /> Reserve in a few taps</span>
+            <span className="flex items-center gap-2"><ScanLine className="h-4 w-4 text-amber-300" /> Scan when you arrive</span>
+          </div>
         </div>
       </div>
 
       {/* ── SEARCH BAR ── */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-20 -mt-16">
         <SearchBar onSearch={handleSearch} />
       </div>
 
@@ -217,29 +235,29 @@ const Home = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-16 lg:gap-24 items-start">
             {/* For Visitors */}
             <div className="relative">
-              <div className="absolute inset-0 bg-indigo-50 rounded-3xl transform rotate-1 scale-105 -z-10"></div>
-              <div className="bg-white rounded-3xl p-8 border border-indigo-100 shadow-sm relative z-10">
-                <div className="inline-flex items-center justify-center p-3 bg-indigo-100 text-indigo-700 rounded-xl mb-6">
+              <div className="absolute inset-0 bg-stone-100 rounded-3xl transform rotate-1 scale-105 -z-10"></div>
+              <div className="bg-white rounded-3xl p-8 border border-stone-200 shadow-sm relative z-10">
+                <div className="inline-flex items-center justify-center p-3 bg-stone-100 text-stone-800 rounded-xl mb-6">
                   <Sparkles className="w-6 h-6" />
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-6">For Visitors</h3>
                 <ul className="space-y-6">
                   <li className="flex items-start">
-                    <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-indigo-600 text-white font-bold text-sm mt-0.5">1</div>
+                    <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-stone-800 text-white font-bold text-sm mt-0.5">1</div>
                     <div className="ml-4">
                       <h4 className="text-lg font-bold text-gray-900">Discover & Browse</h4>
                       <p className="mt-1 text-gray-600">Search for museums, read reviews, and explore curated collections on our interactive map.</p>
                     </div>
                   </li>
                   <li className="flex items-start">
-                    <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-indigo-600 text-white font-bold text-sm mt-0.5">2</div>
+                    <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-stone-800 text-white font-bold text-sm mt-0.5">2</div>
                     <div className="ml-4">
                       <h4 className="text-lg font-bold text-gray-900">Book via Chatbot</h4>
                       <p className="mt-1 text-gray-600">Click to book and chat with our smart assistant to select tickets and apply instant payments.</p>
                     </div>
                   </li>
                   <li className="flex items-start">
-                    <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-indigo-600 text-white font-bold text-sm mt-0.5">3</div>
+                    <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-stone-800 text-white font-bold text-sm mt-0.5">3</div>
                     <div className="ml-4">
                       <h4 className="text-lg font-bold text-gray-900">Scan & Enter</h4>
                       <p className="mt-1 text-gray-600">Show your digital ticket at the entrance. The staff will verify your code in seconds. Skip the line!</p>
@@ -251,29 +269,29 @@ const Home = () => {
 
             {/* For Owners */}
             <div className="relative">
-              <div className="absolute inset-0 bg-purple-50 rounded-3xl transform -rotate-1 scale-105 -z-10"></div>
-              <div className="bg-white rounded-3xl p-8 border border-purple-100 shadow-sm relative z-10">
-                <div className="inline-flex items-center justify-center p-3 bg-purple-100 text-purple-700 rounded-xl mb-6">
+              <div className="absolute inset-0 bg-slate-100 rounded-3xl transform -rotate-1 scale-105 -z-10"></div>
+              <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm relative z-10">
+                <div className="inline-flex items-center justify-center p-3 bg-slate-100 text-slate-800 rounded-xl mb-6">
                   <Building2 className="w-6 h-6" />
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-6">For Museum Owners</h3>
                 <ul className="space-y-6">
                   <li className="flex items-start">
-                    <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-purple-600 text-white font-bold text-sm mt-0.5">1</div>
+                    <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-slate-800 text-white font-bold text-sm mt-0.5">1</div>
                     <div className="ml-4">
                       <h4 className="text-lg font-bold text-gray-900">Register & Customize</h4>
                       <p className="mt-1 text-gray-600">Create a stunning profile, upload gallery images, and set your ticket pricing instantly.</p>
                     </div>
                   </li>
                   <li className="flex items-start">
-                    <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-purple-600 text-white font-bold text-sm mt-0.5">2</div>
+                    <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-slate-800 text-white font-bold text-sm mt-0.5">2</div>
                     <div className="ml-4">
                       <h4 className="text-lg font-bold text-gray-900">Print Your QR Code</h4>
                       <p className="mt-1 text-gray-600">Download your unique QR code from the dashboard and place it at your entrance for walk-ins.</p>
                     </div>
                   </li>
                   <li className="flex items-start">
-                    <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-purple-600 text-white font-bold text-sm mt-0.5">3</div>
+                    <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-slate-800 text-white font-bold text-sm mt-0.5">3</div>
                     <div className="ml-4">
                       <h4 className="text-lg font-bold text-gray-900">Live Analytics</h4>
                       <p className="mt-1 text-gray-600">Watch bookings and revenue flow into your dashboard in real-time, and manage visitor reviews.</p>
@@ -287,21 +305,22 @@ const Home = () => {
       </div>
 
       {/* ── CTA SECTION ── */}
-      <div className="relative py-24 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-900 to-purple-900"></div>
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1574360773958-69cb50730bd0?auto=format&fit=crop&q=80&w=2000')] bg-cover bg-center opacity-10 mix-blend-overlay"></div>
+      <div className="relative py-28 overflow-hidden">
+        <div className="absolute inset-0 bg-[url(/images/landing/natural-history.jpg)] bg-cover bg-center"></div>
+        <div className="absolute inset-0 bg-stone-900/70 backdrop-blur-[2px]"></div>
+        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white to-transparent"></div>
         
         <div className="relative z-10 max-w-4xl mx-auto px-4 text-center">
-          <Building2 className="w-16 h-16 text-indigo-300 mx-auto mb-6 drop-shadow-lg" />
-          <h2 className="text-4xl font-extrabold text-white mb-6">Digitize Your Museum Today</h2>
-          <p className="text-xl text-indigo-200 mb-10 max-w-2xl mx-auto font-light">
+          <Building2 className="w-16 h-16 text-stone-300 mx-auto mb-6 drop-shadow-xl" />
+          <h2 className="text-4xl font-extrabold text-white mb-6 drop-shadow-lg">Digitize Your Museum Today</h2>
+          <p className="text-xl text-stone-200 mb-10 max-w-2xl mx-auto font-medium drop-shadow">
             Join hundreds of heritage sites offering instant QR ticketing. Setup takes less than 5 minutes and gives you a beautiful public profile.
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link to="/register-museum" className="w-full sm:w-auto px-8 py-4 bg-white text-indigo-900 font-extrabold rounded-2xl hover:bg-gray-50 transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1 text-lg">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-5">
+            <Link to="/register-museum" className="w-full sm:w-auto px-8 py-4 bg-white text-stone-900 font-extrabold rounded-2xl hover:bg-stone-100 transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1 text-lg">
               Register Your Museum
             </Link>
-            <Link to="/admin-login" className="w-full sm:w-auto px-8 py-4 bg-indigo-800/50 text-white font-bold rounded-2xl hover:bg-indigo-800 transition-all border border-indigo-400/30 text-lg backdrop-blur-sm">
+            <Link to="/admin-login" className="w-full sm:w-auto px-8 py-4 bg-black/40 text-white font-bold rounded-2xl hover:bg-black/60 transition-all border border-white/20 text-lg backdrop-blur-md">
               Owner Login
             </Link>
           </div>

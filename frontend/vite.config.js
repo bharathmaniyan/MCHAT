@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    host: '127.0.0.1',
     proxy: {
       '/api': {
         target: 'http://localhost:9090',   // ← Spring Boot runs on 9090
@@ -14,6 +15,11 @@ export default defineConfig({
       },
       '/qr': {
         target: 'http://localhost:9090',   // ← static QR images served by Spring Boot
+        changeOrigin: true,
+        secure: false,
+      },
+      '/uploads': {
+        target: 'http://localhost:9090',   // ← uploaded museum images served by Spring Boot
         changeOrigin: true,
         secure: false,
       }

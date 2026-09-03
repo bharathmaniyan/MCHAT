@@ -6,13 +6,13 @@ import {
 import toast from 'react-hot-toast';
 
 const Navbar = () => {
-  const navigate  = useNavigate();
-  const location  = useLocation();
-  const [isOpen, setIsOpen]   = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
-  const token      = localStorage.getItem('token');
-  const userType   = localStorage.getItem('userType');
+  const token = localStorage.getItem('token');
+  const userType = localStorage.getItem('userType');
   const museumName = localStorage.getItem('museumName');
 
   useEffect(() => {
@@ -45,9 +45,8 @@ const Navbar = () => {
   ];
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-      scrolled ? 'bg-white/95 backdrop-blur-md shadow-lg' : 'bg-white/80 backdrop-blur-sm'
-    }`}>
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-lg' : 'bg-white/80 backdrop-blur-sm'
+      }`}>
       <div className="max-w-7xl mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
@@ -64,11 +63,10 @@ const Navbar = () => {
           <div className="hidden md:flex items-center gap-1">
             {navLinks.map(link => (
               <Link key={link.to} to={link.to}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                  location.pathname === link.to
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${location.pathname === link.to
                     ? 'bg-indigo-50 text-indigo-700'
                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                }`}>
+                  }`}>
                 <link.icon className="h-4 w-4" />
                 {link.label}
               </Link>
@@ -101,11 +99,10 @@ const Navbar = () => {
           <div className="bg-white rounded-2xl shadow-lg p-4 space-y-1 border border-gray-100">
             {navLinks.map(link => (
               <Link key={link.to} to={link.to} onClick={() => setIsOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                  location.pathname === link.to
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${location.pathname === link.to
                     ? 'bg-indigo-50 text-indigo-700'
                     : 'text-gray-700 hover:bg-gray-50'
-                }`}>
+                  }`}>
                 <link.icon className="h-4 w-4" />
                 {link.label}
               </Link>
