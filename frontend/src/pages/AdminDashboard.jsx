@@ -5,16 +5,18 @@ import {
   Plus, Trash2, Users, Calendar, Eye, EyeOff,
   Shield, ToggleLeft, ToggleRight, RefreshCw, CheckCircle,
   XCircle, DollarSign, MapPin, RefreshCcw, Copy, Check,
-  User, Image as ImageIcon, MessageSquare
+  User, Image as ImageIcon, MessageSquare, Sparkles, Home, Globe
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import * as api from '../services/api';
+import { LANGUAGES, getTranslation } from '../utils/translations';
 
 import ProfileEditor from '../components/owner/ProfileEditor';
 import MediaManager from '../components/owner/MediaManager';
 import ReviewManager from '../components/owner/ReviewManager';
 import AnalyticsDashboard from '../components/owner/AnalyticsDashboard';
+import AiCopilotTab from '../components/owner/AiCopilotTab';
 import { useOwnerRealtime } from '../hooks/useOwnerRealtime';
 import { QRCodeCanvas } from 'qrcode.react';
 
@@ -24,6 +26,16 @@ const AdminDashboard = () => {
   const museumName = localStorage.getItem('museumName');
   
   const { liveStats, liveTickets, connectionStatus } = useOwnerRealtime(museumId);
+
+  /* Language state */
+  const [lang, setLang] = useState(() => localStorage.getItem('admin_lang') || 'en');
+  const t = getTranslation(lang);
+
+  const handleLanguageChange = (newLang) => {
+    setLang(newLang);
+    localStorage.setItem('admin_lang', newLang);
+    toast.success(`Language: ${LANGUAGES.find(l => l.code === newLang)?.native || newLang}`);
+  };
 
   const [activeTab, setActiveTab]   = useState('overview');
   const [loading,   setLoading]     = useState(true);
@@ -288,6 +300,22 @@ const AdminDashboard = () => {
 
           {/* Right: controls */}
           <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Language Switcher Dropdown */}
+            <div className="relative">
+              <select
+                value={lang}
+                onChange={(e) => handleLanguageChange(e.target.value)}
+                className="bg-white/20 hover:bg-white/30 text-white text-xs font-bold py-1.5 pl-2.5 pr-7 rounded-lg border border-white/30 outline-none cursor-pointer backdrop-blur-sm transition-all appearance-none"
+                title="Change Language">
+                {LANGUAGES.map(l => (
+                  <option key={l.code} value={l.code} className="text-gray-900 bg-white">
+                    {l.flag} {l.native}
+                  </option>
+                ))}
+              </select>
+              <Globe className="h-3.5 w-3.5 text-white/80 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+
             <button onClick={() => fetchAll(true)} title="Refresh"
               className="bg-white/15 hover:bg-white/25 p-2 rounded-lg transition-all">
               <RefreshCw className="h-4 w-4" />
@@ -298,9 +326,13 @@ const AdminDashboard = () => {
               }`}>
               {museum?.bookingStatus ? <><ToggleRight className="h-4 w-4" />OPEN</> : <><ToggleLeft className="h-4 w-4" />CLOSED</>}
             </button>
+            <button onClick={() => navigate('/')}
+              className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 px-3 py-2 rounded-lg text-xs font-semibold transition-all">
+              <Home className="h-4 w-4" /> <span className="hidden sm:inline">{t.home || 'Home'}</span>
+            </button>
             <button onClick={handleLogout}
               className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 px-3 py-2 rounded-lg text-xs font-semibold transition-all">
-              <LogOut className="h-4 w-4" /> <span className="hidden sm:inline">Logout</span>
+              <LogOut className="h-4 w-4" /> <span className="hidden sm:inline">{t.logout || 'Logout'}</span>
             </button>
           </div>
         </div>
@@ -309,14 +341,15 @@ const AdminDashboard = () => {
       {/* ══════ TABS ══════ */}
       <div className="bg-white border-b border-gray-200 sticky top-[68px] z-20 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex overflow-x-auto">
-          <TabBtn id="overview" label="Overview"  icon={BarChart3} />
-          <TabBtn id="tickets"  label="Tickets"   icon={Ticket}    />
-          <TabBtn id="shows"    label="Shows"     icon={Zap}       />
-          <TabBtn id="profile"  label="Profile"   icon={User}      />
-          <TabBtn id="media"    label="Media"     icon={ImageIcon} />
-          <TabBtn id="reviews"  label="Reviews"   icon={MessageSquare} />
-          <TabBtn id="qr"       label="QR Code"   icon={QrCode}    />
-          <TabBtn id="settings" label="Settings"  icon={Settings}  />
+          <TabBtn id="overview" label={t.overview || "Overview"}  icon={BarChart3} />
+          <TabBtn id="ai-copilot" label={t.aiCopilot || "AI Copilot"} icon={Sparkles} />
+          <TabBtn id="tickets"  label={t.tickets || "Tickets"}   icon={Ticket}    />
+          <TabBtn id="shows"    label={t.shows || "Shows"}     icon={Zap}       />
+          <TabBtn id="profile"  label={t.profile || "Profile"}   icon={User}      />
+          <TabBtn id="media"    label={t.media || "Media"}     icon={ImageIcon} />
+          <TabBtn id="reviews"  label={t.reviews || "Reviews"}   icon={MessageSquare} />
+          <TabBtn id="qr"       label={t.qrCode || "QR Code"}   icon={QrCode}    />
+          <TabBtn id="settings" label={t.settings || "Settings"}  icon={Settings}  />
         </div>
       </div>
 
@@ -379,6 +412,17 @@ const AdminDashboard = () => {
           </div>
         )}
 
+        {/* ─── AI COPILOT ─── */}
+        {activeTab === 'ai-copilot' && (
+          <AiCopilotTab 
+            museum={museum} 
+            stats={stats} 
+            liveStats={liveStats}
+            tickets={tickets} 
+            reviews={reviews} 
+            onSettingsUpdated={() => fetchAll(true)} 
+          />
+        )}
 
         {/* ─── TICKETS ─── */}
         {activeTab === 'tickets' && (

@@ -21,12 +21,13 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Hide navbar entirely on chatbot / museum detail pages
-  const isChatbotPage =
+  // Hide navbar on chatbot, museum detail, and admin-dashboard pages (they have dedicated headers)
+  const hideNavbar =
     location.pathname.startsWith('/chatbot') ||
-    location.pathname.startsWith('/museum/');
+    location.pathname.startsWith('/museum/') ||
+    location.pathname.startsWith('/admin-dashboard');
 
-  if (isChatbotPage) return null;
+  if (hideNavbar) return null;
 
   const handleLogout = () => {
     localStorage.clear();
