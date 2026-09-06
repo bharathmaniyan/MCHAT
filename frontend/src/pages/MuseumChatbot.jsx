@@ -81,33 +81,13 @@ const MuseumChatbot = () => {
     return !localStorage.getItem('visitor_user') && !sessionStorage.getItem('visitor_guest');
   });
 
-  /* ── GOOGLE ACCOUNTS (Choose an Account Modal) ── */
+  /* ── GOOGLE ACCOUNTS (Choose an Account Modal) — dynamic, from login history ── */
   const [googleAccounts, setGoogleAccounts] = useState(() => {
     try {
       const saved = localStorage.getItem('saved_google_accounts');
       if (saved) return JSON.parse(saved);
     } catch { /* ignore */ }
-    return [
-      {
-        name: 'BHARATH M',
-        email: 'bharath206512@gmail.com',
-        initial: 'B',
-        bgColor: 'bg-[#5c6bc0]',
-      },
-      {
-        name: 'Bharath Bharath',
-        email: 'bharath206511@gmail.com',
-        initial: 'B',
-        bgColor: 'bg-[#ab47bc]',
-      },
-      {
-        name: 'Johnwick',
-        email: 'bharathff206512@gmail.com',
-        initial: 'J',
-        bgColor: 'bg-[#263238]',
-        avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Johnwick',
-      },
-    ];
+    return [];
   });
   const [showUseAnother, setShowUseAnother] = useState(false);
   const [customEmailValue, setCustomEmailValue] = useState('');
@@ -265,6 +245,23 @@ const MuseumChatbot = () => {
     setShowAuthGate(false);
     fetchTicketsForEmail(profile.email);
     toast.success(`Welcome ${profile.name || profile.email}! ✅`);
+
+    // Save this account to the google accounts list (for "Choose an account" picker)
+    setGoogleAccounts(prev => {
+      const exists = prev.some(a => a.email.toLowerCase() === profile.email.toLowerCase());
+      const updated = exists ? prev : [
+        ...prev,
+        {
+          name: profile.name || profile.email.split('@')[0],
+          email: profile.email,
+          initial: (profile.name || profile.email)[0].toUpperCase(),
+          bgColor: `bg-[#${Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0')}]`,
+          avatar: profile.avatar,
+        }
+      ];
+      localStorage.setItem('saved_google_accounts', JSON.stringify(updated));
+      return updated;
+    });
   }, []);
 
   const handleGoogleCredentialResponse = useCallback((response) => {
@@ -1277,17 +1274,19 @@ const MuseumChatbot = () => {
 
           {/* ── Header with Language Switcher & User Account ── */}
           <div className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-600 px-4 py-3.5 flex items-center justify-between flex-shrink-0">
-            <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
               <div className="bg-white/20 p-2 rounded-full flex-shrink-0">
-                <Bot className="h-5 w-5 text-white" />
+                <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 3L2 9h20L12 3zM4 9v8h16V9M8 17v-5h3v5M13 17v-5h3v5" />
+                </svg>
               </div>
-              <div className="min-w-0">
-                <h1 className="text-white font-bold text-sm sm:text-base leading-tight truncate">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-white font-bold text-xs sm:text-sm leading-tight">
                   {museum?.museumName || 'Museum Assistant'}
                 </h1>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse flex-shrink-0" />
-                  <span className="text-white/80 text-[11px] truncate">{t.onlineStatus}</span>
+                  <span className="text-white/80 text-[11px]">{t.onlineStatus}</span>
                 </div>
               </div>
             </div>
