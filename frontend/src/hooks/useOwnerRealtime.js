@@ -30,6 +30,11 @@ export const useOwnerRealtime = (museumId) => {
           console.log('SSE connection opened');
         } else {
           setConnectionStatus('ERROR');
+          if (response.status === 401 || response.status === 403) {
+            // Fatal auth error, abort and do not retry
+            controller.abort();
+            return;
+          }
           throw new Error('Failed to connect to SSE');
         }
       },

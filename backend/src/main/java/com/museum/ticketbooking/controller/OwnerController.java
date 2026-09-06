@@ -36,7 +36,11 @@ public class OwnerController {
 
     private Long getMuseumId(HttpServletRequest request) {
         String idStr = (String) request.getAttribute("museumId");
-        if (idStr == null) throw new RuntimeException("Unauthorized");
+        if (idStr == null) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.UNAUTHORIZED, "Unauthorized"
+            );
+        }
         return Long.parseLong(idStr);
     }
 

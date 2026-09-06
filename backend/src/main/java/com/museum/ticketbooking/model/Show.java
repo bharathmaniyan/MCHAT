@@ -20,6 +20,7 @@ public class Show {
     
     @ManyToOne
     @JoinColumn(name = "museum_id")
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"password", "staffPin", "verificationCode", "tickets", "createdAt", "updatedAt"})
     private Museum museum;
     
     @Column(name = "show_name")
