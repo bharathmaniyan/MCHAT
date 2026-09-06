@@ -1311,20 +1311,32 @@ const MuseumChatbot = () => {
 
               {/* User Account / Sign In Pill */}
               {userAuth ? (
-                <button
-                  onClick={handleSignOut}
-                  title={`${t.signedInAs}: ${userAuth.email} (Click to switch)`}
-                  className="bg-white/20 hover:bg-white/30 text-white p-1.5 rounded-full transition-colors flex items-center gap-1">
-                  <div className="w-5 h-5 rounded-full bg-indigo-500 text-white font-bold text-[10px] flex items-center justify-center shadow-xs">
-                    {userAuth.email[0].toUpperCase()}
+                <div className="flex items-center gap-1.5">
+                  {/* Avatar + Name pill */}
+                  <div className="flex items-center gap-1.5 bg-white/20 text-white px-2.5 py-1 rounded-full text-[11px] font-semibold max-w-[110px]">
+                    <div className="w-5 h-5 rounded-full bg-indigo-400 text-white font-bold text-[10px] flex items-center justify-center shrink-0 shadow-xs">
+                      {(userAuth.name || userAuth.email)[0].toUpperCase()}
+                    </div>
+                    <span className="truncate">
+                      {userAuth.name ? userAuth.name.split(' ')[0] : userAuth.email.split('@')[0]}
+                    </span>
                   </div>
-                </button>
+                  {/* Explicit Logout button */}
+                  <button
+                    onClick={handleSignOut}
+                    title="Logout"
+                    className="bg-red-500/80 hover:bg-red-600 text-white px-2 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 transition-colors shadow-sm">
+                    <LogOut className="h-3 w-3" />
+                    <span>Logout</span>
+                  </button>
+                </div>
               ) : (
                 <button
                   onClick={() => setShowAuthGate(true)}
                   title={t.continueWithGoogle}
-                  className="bg-white/20 hover:bg-white/30 text-white p-1.5 rounded-full transition-colors">
-                  <LogIn className="h-4 w-4" />
+                  className="bg-white/20 hover:bg-white/30 text-white px-3 py-1.5 rounded-full text-[11px] font-semibold flex items-center gap-1.5 transition-colors">
+                  <LogIn className="h-3.5 w-3.5" />
+                  <span>Sign In</span>
                 </button>
               )}
 
