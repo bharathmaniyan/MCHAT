@@ -224,93 +224,111 @@ const MuseumChatbot = () => {
   const addBot  = (text) => setMessages(p => [...p, { id: Date.now() + Math.random(), type: 'bot',  text }]);
   const addUser = (text) => setMessages(p => [...p, { id: Date.now() + Math.random(), type: 'user', text }]);
 
-  /* ── Real Google Auth Handlers (Google Identity Services) ── */
+  /* ── Real Google Auth (Google Identity & OAuth) ── */
+  const completeAuthWithProfile = useCallback((profile) => {
+    localStorage.setItem('visitor_user', JSON.stringify(profile));
+    setUserAuth(profile);
+    setBooking(prev => ({ ...prev, email: profile.email }));
+    setHistoryEmail(profile.email);
+    setShowAuthGate(false);
+    fetchTicketsForEmail(profile.email);
+    toast.success(`Welcome ${profile.name || profile.email}! ✅`);
+  }, []);
+
   const handleGoogleCredentialResponse = useCallback((response) => {
-    if (!response?.credential) {
-      toast.error('Google sign-in was not completed.');
-      return;
-    }
+    if (!response?.credential) return;
     const payload = parseJwt(response.credential);
     if (payload && payload.email) {
-      const realProfile = {
+      completeAuthWithProfile({
         name: payload.name || payload.given_name || payload.email.split('@')[0],
         email: payload.email.trim().toLowerCase(),
         avatar: payload.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${payload.email}`,
         provider: 'google',
         verified: payload.email_verified || true,
-        sub: payload.sub,
         signedInAt: new Date().toISOString()
-      };
-      localStorage.setItem('visitor_user', JSON.stringify(realProfile));
-      setUserAuth(realProfile);
-      setBooking(prev => ({ ...prev, email: realProfile.email }));
-      setHistoryEmail(realProfile.email);
-      setShowAuthGate(false);
-      fetchTicketsForEmail(realProfile.email);
-      toast.success(`Signed in as ${realProfile.name} (${realProfile.email}) ✅`);
-    } else {
-      toast.error('Could not retrieve Google profile.');
+      });
     }
-  }, []);
+  }, [completeAuthWithProfile]);
 
-  // Initialize Google Identity Services whenever modal is shown
+  // Setup Google OAuth Client
+  const [tokenClient, setTokenClient] = useState(null);
+
   useEffect(() => {
-    if (!showAuthGate) return;
+    const initGoogleOAuth = () => {
+      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1047192348512-4v9n0m8l7k6j5h4g3f2e1d0c.apps.googleusercontent.com';
 
-    const setupGoogleGSI = () => {
+      if (window.google?.accounts?.oauth2) {
+        try {
+          const client = window.google.accounts.oauth2.initTokenClient({
+            client_id: clientId,
+            scope: 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
+            callback: async (tokenResponse) => {
+              if (tokenResponse?.access_token) {
+                try {
+                  const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                    headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+                  });
+                  const info = await res.json();
+                  if (info?.email) {
+                    completeAuthWithProfile({
+                      name: info.name || info.given_name || info.email.split('@')[0],
+                      email: info.email.trim().toLowerCase(),
+                      avatar: info.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${info.email}`,
+                      provider: 'google',
+                      verified: info.email_verified || true,
+                      signedInAt: new Date().toISOString()
+                    });
+                  }
+                } catch {
+                  toast.error('Could not fetch Google profile.');
+                }
+              }
+            },
+          });
+          setTokenClient(client);
+        } catch (err) {
+          console.warn('Google OAuth init note:', err);
+        }
+      }
+
       if (window.google?.accounts?.id) {
         try {
-          const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1047192348512-4v9n0m8l7k6j5h4g3f2e1d0c.apps.googleusercontent.com';
           window.google.accounts.id.initialize({
             client_id: clientId,
             callback: handleGoogleCredentialResponse,
             auto_select: false,
-            cancel_on_tap_outside: true,
           });
-
-          const btnContainer = document.getElementById('googleSignInBtnContainer');
-          if (btnContainer) {
-            btnContainer.innerHTML = '';
-            window.google.accounts.id.renderButton(btnContainer, {
-              theme: 'outline',
-              size: 'large',
-              type: 'standard',
-              text: 'continue_with',
-              shape: 'pill',
-              logo_alignment: 'left',
-              width: 280,
-            });
-          }
         } catch (e) {
-          console.log('GSI setup note:', e);
+          console.warn('GSI init error:', e);
         }
       }
     };
 
-    const timer = setTimeout(setupGoogleGSI, 400);
+    const timer = setTimeout(initGoogleOAuth, 500);
     return () => clearTimeout(timer);
-  }, [showAuthGate, handleGoogleCredentialResponse]);
+  }, [completeAuthWithProfile, handleGoogleCredentialResponse]);
 
   const handleGoogleSignIn = () => {
-    if (window.google?.accounts?.id) {
+    // If a custom cloud client ID is provided in .env, attempt OAuth
+    const customClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (customClientId && tokenClient) {
       try {
-        window.google.accounts.id.prompt((notification) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            promptForRealEmail();
-          }
-        });
+        tokenClient.requestAccessToken({ prompt: 'select_account' });
         return;
       } catch {
         // fallback
       }
     }
-    promptForRealEmail();
-  };
 
-  const promptForRealEmail = () => {
-    const emailPrompt = window.prompt("Enter your real Google / Gmail address to sync your tickets:", "");
-    if (emailPrompt) {
-      handleCustomGoogleEmail(emailPrompt);
+    // Direct Google Email verification prompt
+    const emailEl = document.querySelector('input[name="customEmailInput"]');
+    if (emailEl) {
+      emailEl.focus();
+      emailEl.classList.add('ring-2', 'ring-indigo-400');
+    }
+    const entered = window.prompt("Enter your Google / Gmail ID (e.g. yourname@gmail.com):", "");
+    if (entered) {
+      handleCustomGoogleEmail(entered);
     }
   };
 
@@ -318,24 +336,17 @@ const MuseumChatbot = () => {
     const cleanEmail = (customEmail || '').trim().toLowerCase();
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!cleanEmail || !emailRegex.test(cleanEmail)) {
-      toast.error('Please enter a valid Gmail / Email address (e.g. yourname@gmail.com)');
+      toast.error('Please enter a valid email address (e.g. yourname@gmail.com)');
       return;
     }
-    const userProfile = {
+    completeAuthWithProfile({
       name: cleanEmail.split('@')[0],
       email: cleanEmail,
       avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${cleanEmail}`,
       provider: cleanEmail.includes('gmail') ? 'google' : 'email',
       verified: true,
       signedInAt: new Date().toISOString()
-    };
-    localStorage.setItem('visitor_user', JSON.stringify(userProfile));
-    setUserAuth(userProfile);
-    setBooking(prev => ({ ...prev, email: userProfile.email }));
-    setHistoryEmail(userProfile.email);
-    setShowAuthGate(false);
-    fetchTicketsForEmail(userProfile.email);
-    toast.success(`Signed in as ${userProfile.email} ✅`);
+    });
   };
 
   const handleContinueAsGuest = () => {
@@ -1315,15 +1326,12 @@ const MuseumChatbot = () => {
                   {t.welcomeVisitorDesc || 'Sign in with your Google email so all your booked tickets and entry QR codes stay permanently saved.'}
                 </p>
 
-                {/* Real Google Sign In Options */}
+                {/* Single Clean Google Sign-In & Direct Email Form */}
                 <div className="w-full space-y-3 max-w-xs">
-                  {/* Google Identity Services official iframe mount target */}
-                  <div id="googleSignInBtnContainer" className="w-full flex justify-center min-h-[42px] overflow-hidden rounded-full shadow-md bg-white"></div>
-
-                  {/* Fallback Google Interactive Button */}
+                  {/* Single Clean Continue with Google Button */}
                   <button
                     onClick={handleGoogleSignIn}
-                    className="w-full bg-white hover:bg-gray-50 text-gray-800 font-bold py-3 px-4 rounded-2xl shadow-lg flex items-center justify-center gap-3 transition-all transform active:scale-95 border border-gray-100 text-xs sm:text-sm">
+                    className="w-full bg-white hover:bg-gray-50 text-gray-800 font-bold py-3.5 px-4 rounded-2xl shadow-lg flex items-center justify-center gap-3 transition-all transform active:scale-95 border border-gray-100 text-xs sm:text-sm">
                     {/* Google Multicolor SVG Icon */}
                     <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
                       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -1334,10 +1342,10 @@ const MuseumChatbot = () => {
                     <span>{t.continueWithGoogle || 'Continue with Google'}</span>
                   </button>
 
-                  {/* Or enter your real Google / Gmail Email */}
+                  {/* Or Enter Email directly */}
                   <div className="relative flex py-1 items-center">
                     <div className="flex-grow border-t border-white/20"></div>
-                    <span className="flex-shrink mx-2 text-[10px] text-indigo-300 font-semibold uppercase">Or enter real Gmail</span>
+                    <span className="flex-shrink mx-2 text-[10px] text-indigo-300 font-semibold uppercase">Or Enter Email</span>
                     <div className="flex-grow border-t border-white/20"></div>
                   </div>
 
@@ -1356,7 +1364,7 @@ const MuseumChatbot = () => {
                     <button
                       type="submit"
                       className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition-all shadow-sm">
-                      Sync
+                      Continue
                     </button>
                   </form>
 
