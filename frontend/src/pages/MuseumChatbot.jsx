@@ -320,15 +320,13 @@ const MuseumChatbot = () => {
       }
     }
 
-    // Direct Google Email verification prompt
     const emailEl = document.querySelector('input[name="customEmailInput"]');
-    if (emailEl) {
+    if (emailEl && emailEl.value.trim()) {
+      handleCustomGoogleEmail(emailEl.value.trim());
+    } else if (emailEl) {
       emailEl.focus();
       emailEl.classList.add('ring-2', 'ring-indigo-400');
-    }
-    const entered = window.prompt("Enter your Google / Gmail ID (e.g. yourname@gmail.com):", "");
-    if (entered) {
-      handleCustomGoogleEmail(entered);
+      toast('Please enter your Google / Gmail address below', { icon: '📧' });
     }
   };
 
@@ -864,39 +862,101 @@ const MuseumChatbot = () => {
       case STEP.BOOK_SELECT_TICKETS:
         return (
           <div className="p-4 space-y-3">
-            {/* Ticket counter */}
-            <div className="bg-gray-50 rounded-xl p-3 grid grid-cols-2 gap-3 border border-gray-100">
-              {/* Adults */}
-              <div>
-                <p className="text-xs text-gray-500 font-medium mb-1">
-                  {t.adults} {selectedMuseum && `(${fmtPrice(selectedMuseum.adultPrice || selectedMuseum.adultTicketPrice)})`}
-                </p>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setBooking(p => ({ ...p, adults: Math.max(0, p.adults - 1) }))}
-                    className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 font-bold text-base flex items-center justify-center">−</button>
-                  <span className="w-6 text-center font-bold text-sm">{booking.adults}</span>
-                  <button onClick={() => setBooking(p => ({ ...p, adults: p.adults + 1 }))}
-                    className="w-8 h-8 rounded-full bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-bold text-base flex items-center justify-center">+</button>
+            {/* Direct Number Input Ticket Counter */}
+            <div className="bg-gray-50 rounded-2xl p-3.5 grid grid-cols-2 gap-3 border border-gray-200 shadow-xs">
+              {/* Adults Direct Number Input */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-baseline">
+                  <span className="text-xs font-bold text-gray-800">
+                    👨 {t.adults}
+                  </span>
+                  <span className="text-[11px] font-semibold text-indigo-600">
+                    {selectedMuseum && fmtPrice(selectedMuseum.adultPrice || selectedMuseum.adultTicketPrice)}
+                  </span>
+                </div>
+                
+                {/* Direct Number Input */}
+                <input
+                  type="number"
+                  min="0"
+                  max="99"
+                  value={booking.adults === 0 ? '' : booking.adults}
+                  onChange={e => {
+                    const val = parseInt(e.target.value, 10);
+                    setBooking(p => ({ ...p, adults: isNaN(val) ? 0 : Math.max(0, val) }));
+                  }}
+                  placeholder="0"
+                  className="w-full text-center text-xl font-black bg-white border-2 border-indigo-200 rounded-xl py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
+                />
+
+                {/* Quick Selection Chips */}
+                <div className="flex justify-between gap-1 pt-1">
+                  {[1, 2, 3, 4].map(num => (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={() => setBooking(p => ({ ...p, adults: num }))}
+                      className={`flex-1 py-1 rounded-lg text-xs font-bold transition-all ${
+                        booking.adults === num 
+                          ? 'bg-indigo-600 text-white shadow-xs' 
+                          : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      {num}
+                    </button>
+                  ))}
                 </div>
               </div>
-              {/* Children */}
-              <div>
-                <p className="text-xs text-gray-500 font-medium mb-1">
-                  {t.children} {selectedMuseum && `(${fmtPrice(selectedMuseum.childPrice || selectedMuseum.childTicketPrice)})`}
-                </p>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setBooking(p => ({ ...p, children: Math.max(0, p.children - 1) }))}
-                    className="w-8 h-8 rounded-full bg-gray-200 hover:bg-gray-300 font-bold text-base flex items-center justify-center">−</button>
-                  <span className="w-6 text-center font-bold text-sm">{booking.children}</span>
-                  <button onClick={() => setBooking(p => ({ ...p, children: p.children + 1 }))}
-                    className="w-8 h-8 rounded-full bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-bold text-base flex items-center justify-center">+</button>
+
+              {/* Children Direct Number Input */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-baseline">
+                  <span className="text-xs font-bold text-gray-800">
+                    👦 {t.children}
+                  </span>
+                  <span className="text-[11px] font-semibold text-indigo-600">
+                    {selectedMuseum && fmtPrice(selectedMuseum.childPrice || selectedMuseum.childTicketPrice)}
+                  </span>
+                </div>
+
+                {/* Direct Number Input */}
+                <input
+                  type="number"
+                  min="0"
+                  max="99"
+                  value={booking.children === 0 ? '' : booking.children}
+                  onChange={e => {
+                    const val = parseInt(e.target.value, 10);
+                    setBooking(p => ({ ...p, children: isNaN(val) ? 0 : Math.max(0, val) }));
+                  }}
+                  placeholder="0"
+                  className="w-full text-center text-xl font-black bg-white border-2 border-indigo-200 rounded-xl py-2 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
+                />
+
+                {/* Quick Selection Chips */}
+                <div className="flex justify-between gap-1 pt-1">
+                  {[0, 1, 2, 3].map(num => (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={() => setBooking(p => ({ ...p, children: num }))}
+                      className={`flex-1 py-1 rounded-lg text-xs font-bold transition-all ${
+                        booking.children === num 
+                          ? 'bg-indigo-600 text-white shadow-xs' 
+                          : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      {num}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
 
             {totalPrice > 0 && (
-              <div className="text-center text-sm font-black text-indigo-700 bg-indigo-50 rounded-xl py-2 border border-indigo-100">
-                {t.totalPayable}: {fmtPrice(totalPrice)}
+              <div className="text-center text-sm font-black text-indigo-700 bg-indigo-50 rounded-xl py-2 border border-indigo-100 flex items-center justify-center gap-1.5">
+                <span>💰 {t.totalPayable}:</span>
+                <span className="text-base text-indigo-800">{fmtPrice(totalPrice)}</span>
               </div>
             )}
 
@@ -1326,12 +1386,27 @@ const MuseumChatbot = () => {
                   {t.welcomeVisitorDesc || 'Sign in with your Google email so all your booked tickets and entry QR codes stay permanently saved.'}
                 </p>
 
-                {/* Single Clean Google Sign-In & Direct Email Form */}
-                <div className="w-full space-y-3 max-w-xs">
+                {/* Single Unified Direct Google / Email Form */}
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const inputEl = e.target.elements.customEmailInput;
+                    handleCustomGoogleEmail(inputEl.value);
+                  }}
+                  className="w-full space-y-3 max-w-xs"
+                >
+                  <input
+                    name="customEmailInput"
+                    type="email"
+                    required
+                    placeholder="Enter your Gmail (e.g. name@gmail.com)"
+                    className="w-full bg-white text-gray-900 border-2 border-indigo-200 rounded-2xl px-4 py-3.5 text-xs sm:text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                  />
+
                   {/* Single Clean Continue with Google Button */}
                   <button
-                    onClick={handleGoogleSignIn}
-                    className="w-full bg-white hover:bg-gray-50 text-gray-800 font-bold py-3.5 px-4 rounded-2xl shadow-lg flex items-center justify-center gap-3 transition-all transform active:scale-95 border border-gray-100 text-xs sm:text-sm">
+                    type="submit"
+                    className="w-full bg-white hover:bg-gray-50 text-gray-800 font-bold py-3.5 px-4 rounded-2xl shadow-lg flex items-center justify-center gap-3 transition-all transform active:scale-95 border border-gray-200 text-xs sm:text-sm">
                     {/* Google Multicolor SVG Icon */}
                     <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
                       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -1342,38 +1417,13 @@ const MuseumChatbot = () => {
                     <span>{t.continueWithGoogle || 'Continue with Google'}</span>
                   </button>
 
-                  {/* Or Enter Email directly */}
-                  <div className="relative flex py-1 items-center">
-                    <div className="flex-grow border-t border-white/20"></div>
-                    <span className="flex-shrink mx-2 text-[10px] text-indigo-300 font-semibold uppercase">Or Enter Email</span>
-                    <div className="flex-grow border-t border-white/20"></div>
-                  </div>
-
-                  <form onSubmit={(e) => {
-                    e.preventDefault();
-                    const inputEl = e.target.elements.customEmailInput;
-                    handleCustomGoogleEmail(inputEl.value);
-                  }} className="flex gap-1.5">
-                    <input
-                      name="customEmailInput"
-                      type="email"
-                      required
-                      placeholder="yourname@gmail.com"
-                      className="flex-1 bg-white/15 border border-white/25 rounded-xl px-3 py-2 text-xs text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                    />
-                    <button
-                      type="submit"
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition-all shadow-sm">
-                      Continue
-                    </button>
-                  </form>
-
                   <button
+                    type="button"
                     onClick={handleContinueAsGuest}
                     className="w-full text-indigo-200 hover:text-white text-xs font-semibold py-1.5 transition-colors">
                     {t.guestContinue || 'Continue as Guest →'}
                   </button>
-                </div>
+                </form>
 
                 <div className="mt-5 flex items-center justify-center gap-1.5 text-[11px] text-indigo-300 bg-white/10 px-3.5 py-2 rounded-xl border border-white/10 max-w-xs">
                   <ShieldCheck className="h-4 w-4 text-emerald-400 flex-shrink-0" />
