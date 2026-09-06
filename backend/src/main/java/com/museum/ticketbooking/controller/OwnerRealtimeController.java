@@ -16,10 +16,14 @@ public class OwnerRealtimeController {
         this.sseService = sseService;
     }
 
-    @GetMapping("/stream")
+    @GetMapping(value = "/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter stream(HttpServletRequest request) {
         String idStr = (String) request.getAttribute("museumId");
-        if (idStr == null) throw new RuntimeException("Unauthorized");
+        if (idStr == null) {
+            SseEmitter emitter = new SseEmitter(0L);
+            emitter.complete();
+            return emitter;
+        }
         Long museumId = Long.parseLong(idStr);
         
         return sseService.subscribe(museumId);
