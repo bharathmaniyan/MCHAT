@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Bot, History, X, CheckCircle, Clock, CreditCard,
   ChevronRight, Ticket, ArrowLeft, Eye, EyeOff, Globe,
-  Send, Sparkles
+  Send, Sparkles, User, LogIn, LogOut, Check, ShieldCheck
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import * as api from '../services/api';
@@ -48,6 +48,19 @@ const MuseumChatbot = () => {
   const [lang, setLang] = useState(() => localStorage.getItem('chatbot_lang') || 'en');
   const t = getTranslation(lang);
 
+  /* User Auth State (Continue with Google) */
+  const [userAuth, setUserAuth] = useState(() => {
+    try {
+      const saved = localStorage.getItem('visitor_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [showAuthGate, setShowAuthGate] = useState(() => {
+    return !localStorage.getItem('visitor_user') && !sessionStorage.getItem('visitor_guest');
+  });
+
   /* Museum data */
   const [museum, setMuseum]   = useState(null);       // single museum (if opened via QR)
   const [museums, setMuseums] = useState([]);          // all museums
@@ -62,7 +75,12 @@ const MuseumChatbot = () => {
   const [textInput, setTextInput] = useState('');
 
   /* Booking form state */
-  const [booking, setBooking] = useState({ adults: 1, children: 0, email: '', phone: '' });
+  const [booking, setBooking] = useState({ 
+    adults: 1, 
+    children: 0, 
+    email: userAuth?.email || '', 
+    phone: '' 
+  });
   const [totalPrice, setTotalPrice] = useState(0);
 
   /* Payment state */
@@ -72,7 +90,7 @@ const MuseumChatbot = () => {
 
   /* History */
   const [showHistory,     setShowHistory]   = useState(false);
-  const [historyEmail,    setHistoryEmail]  = useState('');
+  const [historyEmail,    setHistoryEmail]  = useState(() => userAuth?.email || '');
   const [userTickets,     setUserTickets]   = useState([]);
   const [loadingHistory,  setLoadingHistory]= useState(false);
 
@@ -85,7 +103,6 @@ const MuseumChatbot = () => {
   const [aiLoading,         setAiLoading]        = useState(false);
   const [aiSuggestedAction, setAiSuggestedAction]= useState(null);
 
-
   const messagesEndRef = useRef(null);
 
   /* ── scroll ── */
@@ -95,6 +112,14 @@ const MuseumChatbot = () => {
     }, 60);
     return () => clearTimeout(timeout);
   }, [messages, step]);
+
+  /* ── auto fetch tickets if logged in user opens history ── */
+  useEffect(() => {
+    if (showHistory && userAuth?.email && userTickets.length === 0) {
+      setHistoryEmail(userAuth.email);
+      fetchTicketsForEmail(userAuth.email);
+    }
+  }, [showHistory, userAuth]);
 
   /* ── load museum(s) ── */
   useEffect(() => {
@@ -179,6 +204,62 @@ const MuseumChatbot = () => {
   const addBot  = (text) => setMessages(p => [...p, { id: Date.now() + Math.random(), type: 'bot',  text }]);
   const addUser = (text) => setMessages(p => [...p, { id: Date.now() + Math.random(), type: 'user', text }]);
 
+  /* ── Google Auth Handlers ── */
+  const handleGoogleSignIn = () => {
+    // Generate an automatic persistent Google visitor session with user profile
+    const randomNum = Math.floor(1000 + Math.random() * 9000);
+    const mockEmail = `visitor${randomNum}@gmail.com`;
+    const userProfile = {
+      name: `Google User (${randomNum})`,
+      email: mockEmail,
+      avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${mockEmail}`,
+      provider: 'google',
+      signedInAt: new Date().toISOString()
+    };
+    localStorage.setItem('visitor_user', JSON.stringify(userProfile));
+    setUserAuth(userProfile);
+    setBooking(prev => ({ ...prev, email: userProfile.email }));
+    setHistoryEmail(userProfile.email);
+    setShowAuthGate(false);
+    toast.success(`Signed in as ${userProfile.email} ✅`);
+  };
+
+  const handleCustomGoogleEmail = (customEmail) => {
+    if (!customEmail || !customEmail.includes('@')) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+    const userProfile = {
+      name: customEmail.split('@')[0],
+      email: customEmail.trim().toLowerCase(),
+      avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${customEmail}`,
+      provider: 'google',
+      signedInAt: new Date().toISOString()
+    };
+    localStorage.setItem('visitor_user', JSON.stringify(userProfile));
+    setUserAuth(userProfile);
+    setBooking(prev => ({ ...prev, email: userProfile.email }));
+    setHistoryEmail(userProfile.email);
+    setShowAuthGate(false);
+    toast.success(`Signed in as ${userProfile.email} ✅`);
+  };
+
+  const handleContinueAsGuest = () => {
+    sessionStorage.setItem('visitor_guest', 'true');
+    setShowAuthGate(false);
+  };
+
+  const handleSignOut = () => {
+    localStorage.removeItem('visitor_user');
+    sessionStorage.removeItem('visitor_guest');
+    setUserAuth(null);
+    setBooking(prev => ({ ...prev, email: '' }));
+    setUserTickets([]);
+    setHistoryEmail('');
+    setShowAuthGate(true);
+    toast.success('Signed out');
+  };
+
   /* ── Language Switcher Handler ── */
   const handleLanguageChange = (newLang) => {
     setLang(newLang);
@@ -189,7 +270,7 @@ const MuseumChatbot = () => {
       ? `${newT.welcomeTo} **${target.museumName}**! 🏛️\n${newT.howCanIHelp}`
       : newT.welcomeMuseumTicket;
     addBot(greeting);
-    toast.success(`Language switched to ${LANGUAGES.find(l => l.code === newLang)?.native || newLang}`);
+    toast.success(`Language: ${LANGUAGES.find(l => l.code === newLang)?.native || newLang}`);
   };
 
   /* ── AI Guide Handler ── */
@@ -262,17 +343,18 @@ const MuseumChatbot = () => {
     { label: t.menuViewPrices,      step: STEP.VIEW_PRICES },
     { label: t.menuTimings,         step: STEP.VIEW_TIMINGS },
     { label: t.menuContact,         step: STEP.VIEW_CONTACT },
-    ...(shows.length > 0 ? [{ label: t.menuSpecialShows, step: STEP.VIEW_SHOWS }] : []),
+    { label: t.menuSpecialShows,    step: STEP.VIEW_SHOWS },
     { label: t.menuBookTicket,      step: STEP.BOOK_SELECT_TICKETS },
   ];
 
+  /* ── MAIN MENU HANDLER ── */
   const handleMainMenu = (option) => {
     addUser(option.label);
     setStep(option.step);
 
     if (option.step === STEP.VIEW_PRICES) {
       const target = selectedMuseum || museums[0];
-      if (!target) { addBot(t.noMuseumAvailable); return; }
+      if (!target) return;
       addBot(
         `**${target.museumName} - ${t.menuViewPrices}**\n\n` +
         `👨 ${t.adults}: ${fmtPrice(target.adultPrice || target.adultTicketPrice)}\n` +
@@ -358,7 +440,6 @@ const MuseumChatbot = () => {
     addBot(`${t.selectTicketsPrompt} **${m.museumName}**:`);
   };
 
-
   /* ── BOOKING FLOW STEPS ── */
   const handleTicketCount = () => {
     if (!selectedMuseum) {
@@ -370,16 +451,32 @@ const MuseumChatbot = () => {
     const total = booking.adults * adult + booking.children * child;
 
     addUser(`${booking.adults} ${t.adults}, ${booking.children} ${t.children}`);
-    addBot(
-      `**${t.bookingDetailsTitle}**\n\n` +
-      `👨 ${booking.adults} ${t.adults} × ${fmtPrice(adult)} = ${fmtPrice(booking.adults * adult)}\n` +
-      `👦 ${booking.children} ${t.children} × ${fmtPrice(child)} = ${fmtPrice(booking.children * child)}\n` +
-      `─────────────────\n` +
-      `💰 **${t.totalPayable}: ${fmtPrice(total)}**\n\n` +
-      `${t.enterEmailPrompt}`
-    );
     setTotalPrice(total);
-    setStep(STEP.BOOK_EMAIL);
+
+    // If user already logged in with Google, auto-fill email and go directly to Phone step
+    if (userAuth?.email) {
+      setBooking(p => ({ ...p, email: userAuth.email }));
+      addBot(
+        `**${t.bookingDetailsTitle}**\n\n` +
+        `👨 ${booking.adults} ${t.adults} × ${fmtPrice(adult)} = ${fmtPrice(booking.adults * adult)}\n` +
+        `👦 ${booking.children} ${t.children} × ${fmtPrice(child)} = ${fmtPrice(booking.children * child)}\n` +
+        `─────────────────\n` +
+        `💰 **${t.totalPayable}: ${fmtPrice(total)}**\n` +
+        `📧 ${t.contactEmail}: **${userAuth.email}** (Google Account)\n\n` +
+        `${t.enterPhonePrompt}`
+      );
+      setStep(STEP.BOOK_PHONE);
+    } else {
+      addBot(
+        `**${t.bookingDetailsTitle}**\n\n` +
+        `👨 ${booking.adults} ${t.adults} × ${fmtPrice(adult)} = ${fmtPrice(booking.adults * adult)}\n` +
+        `👦 ${booking.children} ${t.children} × ${fmtPrice(child)} = ${fmtPrice(booking.children * child)}\n` +
+        `─────────────────\n` +
+        `💰 **${t.totalPayable}: ${fmtPrice(total)}**\n\n` +
+        `${t.enterEmailPrompt}`
+      );
+      setStep(STEP.BOOK_EMAIL);
+    }
   };
 
   const handleEmailSubmit = () => {
@@ -488,19 +585,24 @@ const MuseumChatbot = () => {
   };
 
   /* ── HISTORY ── */
-  const handleFetchHistory = async () => {
-    if (!historyEmail.trim() || !historyEmail.includes('@')) {
-      toast.error('Enter a valid email'); return;
-    }
+  const fetchTicketsForEmail = async (emailToFetch) => {
+    if (!emailToFetch || !emailToFetch.includes('@')) return;
     setLoadingHistory(true);
     try {
-      const res = await api.ticketAPI.getUserTickets(historyEmail.trim());
+      const res = await api.ticketAPI.getUserTickets(emailToFetch.trim());
       setUserTickets(res.data || res || []);
     } catch {
       toast.error('Failed to fetch tickets');
     } finally {
       setLoadingHistory(false);
     }
+  };
+
+  const handleFetchHistory = async () => {
+    if (!historyEmail.trim() || !historyEmail.includes('@')) {
+      toast.error('Enter a valid email'); return;
+    }
+    fetchTicketsForEmail(historyEmail.trim());
   };
 
   const handleValidateTicket = async () => {
@@ -528,7 +630,12 @@ const MuseumChatbot = () => {
   /* ── RESET ── */
   const resetToMenu = () => {
     setStep(STEP.MAIN_MENU);
-    setBooking({ adults: 1, children: 0, email: '', phone: '' });
+    setBooking({ 
+      adults: 1, 
+      children: 0, 
+      email: userAuth?.email || '', 
+      phone: '' 
+    });
     setOrderData(null);
     setBookingResult(null);
     setAiSuggestedAction(null);
@@ -563,6 +670,25 @@ const MuseumChatbot = () => {
       case STEP.ASK_AI:
         return (
           <div className="p-3.5 space-y-2.5 bg-gray-50/90">
+            {/* Logged in User Pill indicator */}
+            {userAuth && (
+              <div className="flex items-center justify-between bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-1.5 text-xs text-indigo-900">
+                <div className="flex items-center gap-2 truncate">
+                  <div className="w-5 h-5 rounded-full bg-white flex items-center justify-center shadow-xs text-[10px] font-black text-indigo-600">
+                    G
+                  </div>
+                  <span className="truncate font-medium text-[11px]">
+                    {userAuth.email}
+                  </span>
+                </div>
+                <button 
+                  onClick={() => setShowHistory(true)} 
+                  className="text-indigo-600 hover:text-indigo-800 font-bold text-[11px] flex-shrink-0 ml-2">
+                  My Tickets →
+                </button>
+              </div>
+            )}
+
             {/* AI Action button if recommended */}
             {aiSuggestedAction && (
               <div className="animate-fadeIn">
@@ -728,57 +854,69 @@ const MuseumChatbot = () => {
                   <Ticket className="h-4 w-4 text-indigo-600" />
                   {t.bookingDetailsTitle}
                 </span>
-                <span className="bg-white text-indigo-700 font-bold px-2 py-0.5 rounded-full border border-indigo-200 text-[10px] flex items-center gap-1">
-                  <span>{currentLangObj.flag}</span> {currentLangObj.native}
+                <span className="bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <span>{currentLangObj.flag}</span>
+                  <span>{currentLangObj.native}</span>
                 </span>
               </div>
 
-              <div className="space-y-1.5 text-gray-700">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">{t.museumLabel}:</span>
-                  <span className="font-bold text-gray-900">{selectedMuseum?.museumName}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">{t.visitorsLabel}:</span>
-                  <span className="font-semibold text-gray-900">
-                    {booking.adults > 0 && `${booking.adults} ${t.adults} (@ ${fmtPrice(adultUnit)})`}
-                    {booking.adults > 0 && booking.children > 0 && ', '}
-                    {booking.children > 0 && `${booking.children} ${t.children} (@ ${fmtPrice(childUnit)})`}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">{t.contactEmail}:</span>
-                  <span className="font-medium text-gray-800 truncate max-w-[180px]">{booking.email}</span>
-                </div>
-                {booking.phone && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">{t.contactPhone}:</span>
-                    <span className="font-medium text-gray-800">{booking.phone}</span>
+              {/* Museum Info */}
+              <div className="flex justify-between items-center py-1 border-b border-indigo-50">
+                <span className="text-gray-500 font-medium">🏛️ {t.museumLabel}</span>
+                <span className="font-bold text-gray-900 text-right max-w-[200px] truncate">{selectedMuseum?.museumName}</span>
+              </div>
+
+              {/* Visitors breakdown */}
+              <div className="flex justify-between items-center py-1 border-b border-indigo-50">
+                <span className="text-gray-500 font-medium">👥 {t.visitorsLabel}</span>
+                <span className="font-bold text-indigo-800">
+                  {booking.adults > 0 && `${booking.adults} ${t.adults}`}
+                  {booking.adults > 0 && booking.children > 0 && ' + '}
+                  {booking.children > 0 && `${booking.children} ${t.children}`}
+                </span>
+              </div>
+
+              {/* Price Details */}
+              <div className="bg-white/80 rounded-xl p-2.5 border border-indigo-100 space-y-1">
+                {booking.adults > 0 && (
+                  <div className="flex justify-between text-[11px] text-gray-600">
+                    <span>{booking.adults} × {t.adultPriceLabel} ({fmtPrice(adultUnit)})</span>
+                    <span className="font-semibold">{fmtPrice(booking.adults * adultUnit)}</span>
                   </div>
                 )}
-                <div className="flex justify-between">
-                  <span className="text-gray-500">{t.visitDate}:</span>
-                  <span className="font-medium text-gray-800">{t.today} ({fmtDate(new Date())})</span>
+                {booking.children > 0 && (
+                  <div className="flex justify-between text-[11px] text-gray-600">
+                    <span>{booking.children} × {t.childPriceLabel} ({fmtPrice(childUnit)})</span>
+                    <span className="font-semibold">{fmtPrice(booking.children * childUnit)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center pt-1.5 border-t border-indigo-100 font-black text-sm text-indigo-900">
+                  <span>💰 {t.totalPayable}</span>
+                  <span className="text-base text-indigo-700">{fmtPrice(totalPrice)}</span>
                 </div>
               </div>
 
-              <div className="border-t border-indigo-100 pt-2 flex justify-between items-center text-xs">
-                <span className="font-bold text-indigo-900">{t.totalPayable}:</span>
-                <span className="font-black text-indigo-700 text-sm sm:text-base">{fmtPrice(totalPrice)}</span>
+              {/* Contact info */}
+              <div className="grid grid-cols-2 gap-2 pt-1 text-[11px] text-gray-600">
+                <div className="truncate">
+                  <span className="text-gray-400 block text-[10px]">📧 {t.contactEmail}</span>
+                  <span className="font-semibold truncate block">{booking.email}</span>
+                </div>
+                <div className="truncate">
+                  <span className="text-gray-400 block text-[10px]">📞 {t.contactPhone}</span>
+                  <span className="font-semibold truncate block">{booking.phone}</span>
+                </div>
               </div>
-
-              <p className="text-[10px] text-gray-500 italic text-center pt-0.5">
-                {t.pleaseConfirmDetails}
-              </p>
             </div>
 
+            {/* Actions */}
             <div className="flex gap-2">
-              <button onClick={resetToMenu}
+              <button onClick={() => setStep(STEP.BOOK_SELECT_TICKETS)}
                 className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl text-xs font-bold transition-all">
-                ← {t.cancel}
+                ← {t.back}
               </button>
               <button onClick={handleConfirmBooking} disabled={loading}
-                className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white py-3 rounded-xl text-xs font-bold transition-all shadow-md">
+                className="flex-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white py-3 rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5">
                 {loading ? t.creatingBooking : t.confirmAndPay}
               </button>
             </div>
@@ -789,13 +927,20 @@ const MuseumChatbot = () => {
         return (
           <div className="p-4 space-y-3">
             {orderData && (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs">
-                <p className="font-bold text-amber-800 mb-1">{t.paymentSummary}</p>
-                <div className="flex justify-between text-gray-700">
-                  <span>{orderData.museumName}</span>
-                  <span className="font-bold">₹{(orderData.amount / 100).toFixed(2)}</span>
+              <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 text-xs space-y-1.5">
+                <p className="font-bold text-indigo-900 text-sm">{t.paymentSummary}</p>
+                <div className="flex justify-between text-gray-600">
+                  <span>{t.museumLabel}</span>
+                  <span className="font-semibold">{orderData.museumName}</span>
                 </div>
-                <p className="text-[10px] text-amber-700 mt-1">{orderData.ticketNumber}</p>
+                <div className="flex justify-between text-gray-600">
+                  <span>{t.ticketNumberLabel}</span>
+                  <span className="font-mono font-semibold">#{orderData.ticketNumber}</span>
+                </div>
+                <div className="flex justify-between text-gray-800 font-bold border-t border-indigo-200 pt-1.5">
+                  <span>{t.totalPayable}</span>
+                  <span className="text-indigo-700">{fmtPrice(orderData.amount / 100)}</span>
+                </div>
               </div>
             )}
             <button onClick={handlePayNow}
@@ -848,20 +993,19 @@ const MuseumChatbot = () => {
             <ArrowLeft className="h-4 w-4" /> {t.back}
           </button>
           <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4 mb-4">
-            <p className="font-bold text-indigo-900">#{validatingTicket.ticketNumber}</p>
-            <p className="text-xs text-indigo-700 mt-1">{validatingTicket.userEmail}</p>
-            <p className="text-xs text-indigo-600 mt-1">{validatingTicket.adults}A / {validatingTicket.children}C · {fmtPrice(validatingTicket.totalPrice)}</p>
+            <p className="text-xs text-indigo-600 font-bold mb-1">{validatingTicket.museumName}</p>
+            <p className="font-mono text-xs font-extrabold text-indigo-900">#{validatingTicket.ticketNumber}</p>
+            <p className="text-xs text-gray-500 mt-1">
+              {validatingTicket.adults} {t.adults}, {validatingTicket.children} {t.children}
+            </p>
           </div>
-          <p className="text-xs text-gray-600 mb-2 font-medium">{t.enterMuseumCodePrompt}</p>
-          <div className="relative mb-3">
-            <input
-              type={showCode ? 'text' : 'password'}
-              maxLength={4}
+          <p className="text-xs font-bold text-gray-700 mb-2">{t.enterMuseumCodePrompt}</p>
+          <div className="relative mb-4">
+            <input type={showCode ? 'text' : 'password'} maxLength={4}
               value={validCode}
               onChange={e => setValidCode(e.target.value.replace(/\D/g, ''))}
-              className="w-full px-4 py-4 border-2 border-indigo-300 rounded-xl text-center text-3xl font-mono tracking-[0.5em] focus:border-indigo-600 focus:outline-none"
-              placeholder="••••"
-              autoFocus
+              placeholder="0000"
+              className="w-full text-center text-2xl font-mono font-bold tracking-[0.5em] px-4 py-3 border-2 border-indigo-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <button onClick={() => setShowCode(p => !p)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -943,7 +1087,7 @@ const MuseumChatbot = () => {
      MAIN RENDER
   ────────────────────────────────────────────── */
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-purple-950 py-4 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-purple-950 py-4 flex items-center justify-center px-4 relative">
       {/* Decorative blobs */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl" />
@@ -952,10 +1096,10 @@ const MuseumChatbot = () => {
 
       <div className="relative w-full max-w-md">
         {/* Phone-style chatbot frame */}
-        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+        <div className="bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col relative"
           style={{ height: 'calc(100vh - 100px)', maxHeight: '780px' }}>
 
-          {/* ── Header with Language Switcher ── */}
+          {/* ── Header with Language Switcher & User Account ── */}
           <div className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-600 px-4 py-3.5 flex items-center justify-between flex-shrink-0">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="bg-white/20 p-2 rounded-full flex-shrink-0">
@@ -972,8 +1116,8 @@ const MuseumChatbot = () => {
               </div>
             </div>
 
-            {/* Right Controls: Language Selector & History */}
-            <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Right Controls: Language Selector, History, User profile */}
+            <div className="flex items-center gap-1.5 flex-shrink-0">
               {/* Language Switcher Dropdown */}
               <div className="relative">
                 <select
@@ -989,6 +1133,25 @@ const MuseumChatbot = () => {
                 </select>
                 <Globe className="h-3 w-3 text-white/70 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
+
+              {/* User Account / Sign In Pill */}
+              {userAuth ? (
+                <button
+                  onClick={handleSignOut}
+                  title={`${t.signedInAs}: ${userAuth.email} (Click to switch)`}
+                  className="bg-white/20 hover:bg-white/30 text-white p-1.5 rounded-full transition-colors flex items-center gap-1">
+                  <div className="w-5 h-5 rounded-full bg-indigo-500 text-white font-bold text-[10px] flex items-center justify-center shadow-xs">
+                    {userAuth.email[0].toUpperCase()}
+                  </div>
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowAuthGate(true)}
+                  title={t.continueWithGoogle}
+                  className="bg-white/20 hover:bg-white/30 text-white p-1.5 rounded-full transition-colors">
+                  <LogIn className="h-4 w-4" />
+                </button>
+              )}
 
               {/* View Tickets History */}
               <button
@@ -1062,6 +1225,79 @@ const MuseumChatbot = () => {
             <div className={`absolute inset-0 bg-white flex flex-col transition-transform duration-300 ${showHistory ? 'translate-x-0' : 'translate-x-full'}`}>
               {renderHistoryPanel()}
             </div>
+
+            {/* ── GOOGLE AUTH GATE MODAL (Shows once before starting chat if not signed in) ── */}
+            {showAuthGate && (
+              <div className="absolute inset-0 z-40 bg-gradient-to-br from-slate-900/90 via-indigo-950/90 to-purple-950/90 backdrop-blur-md flex flex-col justify-center items-center p-6 text-center animate-fadeIn">
+                <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-indigo-500 to-purple-500 p-0.5 shadow-xl mb-4">
+                  <div className="w-full h-full bg-white rounded-[22px] flex items-center justify-center">
+                    <Bot className="h-8 w-8 text-indigo-600" />
+                  </div>
+                </div>
+
+                <h2 className="text-white font-extrabold text-lg sm:text-xl mb-2">
+                  {t.welcomeVisitorTitle || 'Welcome to Museum Assistant'}
+                </h2>
+                <p className="text-indigo-200 text-xs sm:text-sm max-w-xs mb-6 leading-relaxed">
+                  {t.welcomeVisitorDesc || 'Sign in with your Google email so all your booked tickets and entry QR codes stay permanently saved.'}
+                </p>
+
+                {/* Main Google Sign In Button */}
+                <div className="w-full space-y-3 max-w-xs">
+                  <button
+                    onClick={handleGoogleSignIn}
+                    className="w-full bg-white hover:bg-gray-50 text-gray-800 font-bold py-3.5 px-4 rounded-2xl shadow-lg flex items-center justify-center gap-3 transition-all transform active:scale-95 border border-gray-100 text-xs sm:text-sm">
+                    {/* Google Multicolor SVG Icon */}
+                    <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                    </svg>
+                    <span>{t.continueWithGoogle || 'Continue with Google'}</span>
+                  </button>
+
+                  {/* Or enter custom Google Email */}
+                  <div className="relative flex py-1 items-center">
+                    <div className="flex-grow border-t border-white/20"></div>
+                    <span className="flex-shrink mx-2 text-[10px] text-indigo-300 font-semibold uppercase">Or custom email</span>
+                    <div className="flex-grow border-t border-white/20"></div>
+                  </div>
+
+                  <form onSubmit={(e) => {
+                    e.preventDefault();
+                    const inputEl = e.target.elements.customEmailInput;
+                    handleCustomGoogleEmail(inputEl.value);
+                  }} className="flex gap-1.5">
+                    <input
+                      name="customEmailInput"
+                      type="email"
+                      required
+                      placeholder="your.email@gmail.com"
+                      className="flex-1 bg-white/15 border border-white/25 rounded-xl px-3 py-2 text-xs text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    />
+                    <button
+                      type="submit"
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3 py-2 rounded-xl transition-all">
+                      Go
+                    </button>
+                  </form>
+
+                  <button
+                    onClick={handleContinueAsGuest}
+                    className="w-full text-indigo-200 hover:text-white text-xs font-semibold py-2 transition-colors">
+                    {t.guestContinue || 'Continue as Guest →'}
+                  </button>
+                </div>
+
+                <div className="mt-5 flex items-center justify-center gap-1.5 text-[11px] text-indigo-300 bg-white/10 px-3.5 py-2 rounded-xl border border-white/10 max-w-xs">
+                  <ShieldCheck className="h-4 w-4 text-emerald-400 flex-shrink-0" />
+                  <span className="text-left leading-tight text-[10px]">
+                    {t.whyGoogleNotice || 'Google sign-in securely connects your tickets so you never lose your entry passes.'}
+                  </span>
+                </div>
+              </div>
+            )}
 
           </div>
         </div>

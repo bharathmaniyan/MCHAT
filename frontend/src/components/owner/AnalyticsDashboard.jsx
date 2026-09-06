@@ -3,7 +3,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Legend
 } from 'recharts';
-import { TrendingUp, Users, DollarSign, Calendar, Eye, Activity } from 'lucide-react';
+import { TrendingUp, Users, DollarSign, Calendar, Eye, Activity, Ticket } from 'lucide-react';
 import Skeleton from '../common/Skeleton';
 
 const AnalyticsDashboard = ({ analyticsData, liveStats, loading, connectionStatus, range, setRange }) => {
@@ -111,7 +111,7 @@ const AnalyticsDashboard = ({ analyticsData, liveStats, loading, connectionStatu
         <KpiCard 
           title="Today's Tickets" 
           value={currentStats.todayTicketsCount} 
-          icon={TicketIcon}
+          icon={Ticket}
         />
         <KpiCard 
           title={`Total Visitors (${range.toUpperCase()})`} 

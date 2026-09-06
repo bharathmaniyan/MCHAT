@@ -5,7 +5,8 @@ import {
   Plus, Trash2, Users, Calendar, Eye, EyeOff,
   Shield, ToggleLeft, ToggleRight, RefreshCw, CheckCircle,
   XCircle, DollarSign, MapPin, RefreshCcw, Copy, Check,
-  User, Image as ImageIcon, MessageSquare, Sparkles, Home, Globe
+  User, Image as ImageIcon, MessageSquare, Sparkles, Home, Globe,
+  TrendingUp, Activity, Search, ChevronRight, Clock, ShieldCheck
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -94,12 +95,9 @@ const AdminDashboard = () => {
       setShows(Array.isArray(sh) ? sh : []);
       setMuseum(m);
       
-      // We can also fetch reviews here, or public reviews
       const revRes = await api.publicAPI.getMuseumReviews(m.slug || m.id, 0, 50);
       setReviews(revRes?.content || revRes?.data?.content || []);
       
-      // Only set the settings form on initial load or explicit non-silent refreshes
-      // This prevents the 30s background polling from erasing user input while they type
       if (!silent) {
         setSettingsForm({
           adultPrice:  m?.adultPrice  ?? m?.adultTicketPrice ?? '',
@@ -223,124 +221,126 @@ const AdminDashboard = () => {
   };
 
   /* ── UI HELPERS ── */
-  const StatCard = ({ icon: Icon, label, value, color = 'indigo' }) => {
-    const c = {
-      indigo: { bg:'bg-indigo-50', ic:'text-indigo-600', val:'text-indigo-700' },
-      green:  { bg:'bg-green-50',  ic:'text-green-600',  val:'text-green-700'  },
-      blue:   { bg:'bg-blue-50',   ic:'text-blue-600',   val:'text-blue-700'   },
-      purple: { bg:'bg-purple-50', ic:'text-purple-600', val:'text-purple-700' },
-    }[color];
-    return (
-      <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-100 hover:shadow-xl transition-all group">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-gray-500 text-sm font-medium">{label}</p>
-            <p className={`text-4xl font-black ${c.val} mt-2 group-hover:scale-105 transition-transform origin-left`}>{value}</p>
-          </div>
-          <div className={`${c.bg} p-3 rounded-xl`}><Icon className={`h-6 w-6 ${c.ic}`} /></div>
-        </div>
-      </div>
-    );
-  };
-
   const TabBtn = ({ id, label, icon: Icon }) => (
     <button onClick={() => setActiveTab(id)}
-      className={`flex items-center gap-2 py-3.5 px-5 text-sm font-semibold border-b-2 transition-all whitespace-nowrap ${
-        activeTab === id ? 'border-indigo-600 text-indigo-700 bg-indigo-50/70' : 'border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-50'
+      className={`flex items-center gap-2.5 py-3.5 px-4 text-xs sm:text-sm font-bold border-b-2 transition-all whitespace-nowrap rounded-t-xl ${
+        activeTab === id 
+          ? 'border-indigo-600 text-indigo-600 bg-indigo-50/80 shadow-xs' 
+          : 'border-transparent text-gray-500 hover:text-gray-900 hover:bg-gray-50/80'
       }`}>
-      <Icon className="h-4 w-4" />{label}
+      <Icon className={`h-4 w-4 ${activeTab === id ? 'text-indigo-600' : 'text-gray-400'}`} />
+      {label}
     </button>
   );
 
   const StatusBadge = ({ status }) => {
     const m = {
-      ACTIVE:    'bg-emerald-100 text-emerald-800 border-emerald-200',
-      USED:      'bg-gray-100 text-gray-600 border-gray-200',
-      PENDING:   'bg-amber-100 text-amber-800 border-amber-200',
-      CANCELLED: 'bg-red-100 text-red-700 border-red-200',
+      ACTIVE:    'bg-emerald-50 text-emerald-700 border-emerald-200 ring-1 ring-emerald-500/20',
+      USED:      'bg-slate-100 text-slate-600 border-slate-200',
+      PENDING:   'bg-amber-50 text-amber-700 border-amber-200 ring-1 ring-amber-500/20',
+      CANCELLED: 'bg-rose-50 text-rose-700 border-rose-200 ring-1 ring-rose-500/20',
     };
-    return <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${m[status] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>{status}</span>;
+    return (
+      <span className={`px-2.5 py-1 rounded-full text-[11px] font-extrabold border ${m[status] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+        {status}
+      </span>
+    );
   };
 
   if (loading && !stats) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-indigo-600 border-t-transparent mx-auto mb-4" />
-          <p className="text-gray-500 font-semibold">Loading dashboard…</p>
+      <div className="flex items-center justify-center min-h-screen bg-slate-950">
+        <div className="text-center p-8 bg-slate-900 rounded-3xl border border-slate-800 shadow-2xl">
+          <div className="w-16 h-16 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin mx-auto mb-4" />
+          <p className="text-white font-bold text-base">Loading museum dashboard…</p>
+          <p className="text-slate-400 text-xs mt-1">Connecting to live realtime server</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-900/10 text-slate-900">
 
-      {/* ══════ HEADER ══════ */}
-      <div className="bg-gradient-to-r from-indigo-700 via-indigo-600 to-purple-600 text-white sticky top-0 z-30 shadow-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex justify-between items-center gap-4">
+      {/* ══════ MODERN HEADER ══════ */}
+      <header className="bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-950 text-white sticky top-0 z-30 shadow-2xl border-b border-indigo-900/50 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex justify-between items-center gap-4">
 
-          {/* Left: museum name + location */}
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="bg-white/20 p-2.5 rounded-xl hidden sm:flex flex-shrink-0">
-              <QrCode className="h-6 w-6" />
+          {/* Left: museum brand and badge */}
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="bg-gradient-to-tr from-indigo-500 to-purple-500 p-2.5 rounded-2xl shadow-md flex-shrink-0">
+              <QrCode className="h-6 w-6 text-white" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-lg sm:text-2xl font-extrabold leading-tight truncate">
-                {museum?.museumName || museumName || '—'}
-              </h1>
-              <div className="flex items-center gap-1 mt-0.5">
-                <MapPin className="h-3.5 w-3.5 text-indigo-300 flex-shrink-0" />
-                <span className="text-indigo-200 text-xs sm:text-sm truncate">
-                  {museum?.location || 'Location not set'}
+              <div className="flex items-center gap-2">
+                <h1 className="text-base sm:text-xl font-black leading-tight truncate tracking-tight text-white">
+                  {museum?.museumName || museumName || 'Museum Dashboard'}
+                </h1>
+                <span className={`hidden md:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                  museum?.bookingStatus 
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' 
+                    : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                }`}>
+                  {museum?.bookingStatus ? '● Live Open' : '● Closed'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <MapPin className="h-3.5 w-3.5 text-indigo-400 flex-shrink-0" />
+                <span className="text-indigo-200/80 text-xs truncate">
+                  {museum?.location || museum?.city || 'Location not specified'}
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Right: controls */}
+          {/* Right: Controls & Language */}
           <div className="flex items-center gap-2 flex-shrink-0">
             {/* Language Switcher Dropdown */}
             <div className="relative">
               <select
                 value={lang}
                 onChange={(e) => handleLanguageChange(e.target.value)}
-                className="bg-white/20 hover:bg-white/30 text-white text-xs font-bold py-1.5 pl-2.5 pr-7 rounded-lg border border-white/30 outline-none cursor-pointer backdrop-blur-sm transition-all appearance-none"
-                title="Change Language">
+                className="bg-white/10 hover:bg-white/15 text-white text-xs font-bold py-2 pl-3 pr-8 rounded-xl border border-white/20 outline-none cursor-pointer backdrop-blur-md transition-all appearance-none shadow-sm">
                 {LANGUAGES.map(l => (
                   <option key={l.code} value={l.code} className="text-gray-900 bg-white">
                     {l.flag} {l.native}
                   </option>
                 ))}
               </select>
-              <Globe className="h-3.5 w-3.5 text-white/80 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <Globe className="h-3.5 w-3.5 text-white/70 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
-            <button onClick={() => fetchAll(true)} title="Refresh"
-              className="bg-white/15 hover:bg-white/25 p-2 rounded-lg transition-all">
+            <button onClick={() => fetchAll(true)} title="Refresh Dashboard"
+              className="bg-white/10 hover:bg-white/20 text-white p-2.5 rounded-xl border border-white/15 transition-all shadow-sm">
               <RefreshCw className="h-4 w-4" />
             </button>
+
+            {/* Quick Booking Toggle */}
             <button onClick={handleToggleBooking} disabled={bookingToggling}
-              className={`hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
-                museum?.bookingStatus ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-red-500 hover:bg-red-600'
+              className={`hidden sm:flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black transition-all shadow-md ${
+                museum?.bookingStatus 
+                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-900/30' 
+                  : 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-900/30'
               }`}>
-              {museum?.bookingStatus ? <><ToggleRight className="h-4 w-4" />OPEN</> : <><ToggleLeft className="h-4 w-4" />CLOSED</>}
+              {museum?.bookingStatus ? <><ToggleRight className="h-4 w-4" /> OPEN</> : <><ToggleLeft className="h-4 w-4" /> CLOSED</>}
             </button>
+
             <button onClick={() => navigate('/')}
-              className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 px-3 py-2 rounded-lg text-xs font-semibold transition-all">
-              <Home className="h-4 w-4" /> <span className="hidden sm:inline">{t.home || 'Home'}</span>
+              className="hidden sm:flex items-center gap-1.5 bg-white/10 hover:bg-white/20 px-3 py-2 rounded-xl text-xs font-bold border border-white/15 transition-all text-white">
+              <Home className="h-4 w-4" /> <span>{t.home || 'Home'}</span>
             </button>
+
             <button onClick={handleLogout}
-              className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 px-3 py-2 rounded-lg text-xs font-semibold transition-all">
+              className="flex items-center gap-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/30 px-3 py-2 rounded-xl text-xs font-bold transition-all">
               <LogOut className="h-4 w-4" /> <span className="hidden sm:inline">{t.logout || 'Logout'}</span>
             </button>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* ══════ TABS ══════ */}
-      <div className="bg-white border-b border-gray-200 sticky top-[68px] z-20 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex overflow-x-auto">
+      {/* ══════ MODERN NAVIGATION TABS ══════ */}
+      <div className="bg-white/95 border-b border-gray-200/80 sticky top-[64px] z-20 backdrop-blur-md shadow-xs">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex overflow-x-auto gap-1 py-1 no-scrollbar">
           <TabBtn id="overview" label={t.overview || "Overview"}  icon={BarChart3} />
           <TabBtn id="ai-copilot" label={t.aiCopilot || "AI Copilot"} icon={Sparkles} />
           <TabBtn id="tickets"  label={t.tickets || "Tickets"}   icon={Ticket}    />
@@ -353,11 +353,13 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* ══════ CONTENT ══════ */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      {/* ══════ MAIN CONTENT ══════ */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
 
+        {/* ─── TAB 1: OVERVIEW ─── */}
         {activeTab === 'overview' && (
-          <div className="space-y-8">
+          <div className="space-y-8 animate-fadeIn">
+            {/* Realtime Hero Cards & Graphs */}
             <AnalyticsDashboard 
               analyticsData={stats} 
               liveStats={liveStats} 
@@ -367,40 +369,52 @@ const AdminDashboard = () => {
               connectionStatus={connectionStatus}
             />
 
-            {/* Recent/Live tickets */}
-            <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
-              <div className="px-6 py-4 bg-gradient-to-r from-indigo-50 to-purple-50 border-b border-gray-100 flex justify-between items-center">
-                <h3 className="text-base font-bold text-gray-900 flex items-center">
-                  <span className="w-2 h-2 rounded-full bg-red-500 mr-2 animate-pulse"></span>
-                  Live Ticket Feed
-                </h3>
-                <button onClick={() => setActiveTab('tickets')} className="text-xs text-indigo-600 hover:underline font-semibold">View All →</button>
+            {/* Live Feed Table */}
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="px-6 py-4.5 bg-gradient-to-r from-slate-50 to-indigo-50/50 border-b border-gray-100 flex justify-between items-center">
+                <div>
+                  <h3 className="text-base font-extrabold text-gray-900 flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-sm"></span>
+                    Live Ticket Feed
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-0.5">Real-time visitor reservations as they happen</p>
+                </div>
+                <button onClick={() => setActiveTab('tickets')} className="text-xs text-indigo-600 hover:text-indigo-800 font-bold bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-100/50 hover:border-indigo-200 transition-all flex items-center gap-1">
+                  View All Tickets <ChevronRight className="h-3 w-3" />
+                </button>
               </div>
               
               {liveTickets.length === 0 && tickets.length === 0 ? (
-                <div className="text-center py-14"><Ticket className="h-10 w-10 mx-auto mb-2 text-gray-200" /><p className="text-gray-500 font-semibold">No tickets yet</p></div>
+                <div className="text-center py-16">
+                  <div className="w-16 h-16 rounded-full bg-indigo-50 flex items-center justify-center mx-auto mb-3 text-indigo-400">
+                    <Ticket className="h-8 w-8" />
+                  </div>
+                  <p className="text-gray-900 font-extrabold text-sm">No tickets booked yet</p>
+                  <p className="text-gray-400 text-xs mt-1">When visitors book via the chatbot or QR code, their tickets will appear here live.</p>
+                </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="bg-gray-50 border-b border-gray-100">
-                        {['Ticket #','Email','Amount','Status','Time'].map(h => (
-                          <th key={h} className="px-5 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">{h}</th>
-                        ))}
+                      <tr className="bg-gray-50/75 border-b border-gray-100 text-[11px] font-black text-gray-400 uppercase tracking-wider">
+                        <th className="px-6 py-3.5 text-left">Ticket #</th>
+                        <th className="px-6 py-3.5 text-left">Visitor Email</th>
+                        <th className="px-6 py-3.5 text-left">Amount</th>
+                        <th className="px-6 py-3.5 text-left">Status</th>
+                        <th className="px-6 py-3.5 text-left">Time</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-50">
-                      {/* Combine live tickets and historical tickets, avoiding duplicates */}
-                      {Array.from(new Map([...liveTickets, ...tickets.slice(0,5)].map(item => [item.id, item])).values())
+                    <tbody className="divide-y divide-gray-50 text-xs">
+                      {Array.from(new Map([...liveTickets, ...tickets.slice(0, 5)].map(item => [item.id, item])).values())
                         .slice(0, 10)
                         .map(t => (
-                        <tr key={t.id} className={`hover:bg-gray-50/60 transition-colors ${liveTickets.find(lt => lt.id === t.id) ? 'bg-indigo-50/20' : ''}`}>
-                          <td className="px-5 py-4 font-mono text-sm font-bold text-indigo-600">{t.ticketNumber}</td>
-                          <td className="px-5 py-4 text-sm text-gray-600 max-w-[180px] truncate">{t.userEmail}</td>
-                          <td className="px-5 py-4 text-sm font-black text-gray-900">₹{t.totalPrice}</td>
-                          <td className="px-5 py-4"><StatusBadge status={t.status} /></td>
-                          <td className="px-5 py-4 text-sm text-gray-500">
-                            {t.createdAt ? format(new Date(t.createdAt),'HH:mm (dd MMM)') : 'Just now'}
+                        <tr key={t.id} className={`hover:bg-indigo-50/40 transition-colors ${liveTickets.find(lt => lt.id === t.id) ? 'bg-indigo-50/20' : ''}`}>
+                          <td className="px-6 py-4 font-mono font-extrabold text-indigo-600">#{t.ticketNumber}</td>
+                          <td className="px-6 py-4 font-medium text-gray-700 max-w-[200px] truncate">{t.userEmail}</td>
+                          <td className="px-6 py-4 font-black text-gray-900 text-sm">₹{t.totalPrice}</td>
+                          <td className="px-6 py-4"><StatusBadge status={t.status} /></td>
+                          <td className="px-6 py-4 text-gray-400 font-medium">
+                            {t.createdAt ? format(new Date(t.createdAt),'HH:mm · dd MMM') : 'Just now'}
                           </td>
                         </tr>
                       ))}
@@ -412,74 +426,103 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* ─── AI COPILOT ─── */}
+        {/* ─── TAB 2: AI COPILOT ─── */}
         {activeTab === 'ai-copilot' && (
-          <AiCopilotTab 
-            museum={museum} 
-            stats={stats} 
-            liveStats={liveStats}
-            tickets={tickets} 
-            reviews={reviews} 
-            onSettingsUpdated={() => fetchAll(true)} 
-          />
+          <div className="animate-fadeIn">
+            <AiCopilotTab 
+              museum={museum} 
+              stats={stats} 
+              liveStats={liveStats}
+              tickets={tickets} 
+              reviews={reviews} 
+              onSettingsUpdated={() => fetchAll(true)} 
+            />
+          </div>
         )}
 
-        {/* ─── TICKETS ─── */}
+        {/* ─── TAB 3: TICKETS ─── */}
         {activeTab === 'tickets' && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-extrabold text-gray-900">Ticket Verification</h2>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-              <div className="lg:col-span-2 bg-white rounded-2xl shadow-md p-6 border border-gray-100">
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Search by Phone</p>
-                <input type="tel" placeholder="Enter customer phone number…" value={searchTerm}
-                  onChange={e => handlePhoneSearch(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none text-sm" />
-              </div>
-              <div className="bg-indigo-50 border border-indigo-100 rounded-2xl shadow-md p-6 flex flex-col justify-center">
-                <p className="text-xs font-bold text-indigo-500 uppercase mb-1">Found</p>
-                <p className="text-5xl font-black text-indigo-700">{tickets.length}</p>
-                <p className="text-sm text-indigo-400">ticket{tickets.length !== 1 ? 's':''}</p>
+          <div className="space-y-6 animate-fadeIn">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h2 className="text-xl sm:text-2xl font-black text-gray-900">Ticket Management & Gate Verification</h2>
+                <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Search visitor passes, check booking status, and grant entrance</p>
               </div>
             </div>
-            <div className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
+
+            {/* Search Bar & Quick Stats */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="lg:col-span-2 bg-white rounded-3xl shadow-sm p-5 border border-gray-100 flex items-center gap-3">
+                <Search className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                <input 
+                  type="tel" 
+                  placeholder="Search customer by mobile number…" 
+                  value={searchTerm}
+                  onChange={e => handlePhoneSearch(e.target.value)}
+                  className="w-full text-sm outline-none font-medium text-gray-800 placeholder-gray-400" 
+                />
+                {searchTerm && (
+                  <button onClick={() => handlePhoneSearch('')} className="text-xs text-gray-400 hover:text-gray-600 font-bold">
+                    Clear
+                  </button>
+                )}
+              </div>
+              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-3xl p-5 text-white shadow-md flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-indigo-200 uppercase tracking-wider">Tickets Displayed</p>
+                  <p className="text-3xl font-black mt-1">{tickets.length}</p>
+                </div>
+                <div className="bg-white/20 p-3 rounded-2xl">
+                  <Ticket className="h-6 w-6 text-white" />
+                </div>
+              </div>
+            </div>
+
+            {/* Tickets Table */}
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
               {tickets.length === 0 ? (
                 <div className="text-center py-16">
-                  <Ticket className="h-12 w-12 mx-auto mb-3 text-gray-200" />
-                  <p className="font-semibold text-gray-500">No tickets found</p>
-                  <p className="text-sm text-gray-400 mt-1">{searchTerm ? 'Try a different number' : 'Enter phone number to search'}</p>
+                  <Ticket className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                  <p className="font-extrabold text-gray-800">No tickets found</p>
+                  <p className="text-xs text-gray-400 mt-1">{searchTerm ? 'Try another phone number' : 'No reservations booked yet.'}</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full text-left">
                     <thead>
-                      <tr className="bg-gray-50 border-b border-gray-100">
-                        {['Ticket #','Email','Phone','Visitors','Amount','Status','Date','Action'].map(h => (
-                          <th key={h} className="px-4 py-3.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
-                        ))}
+                      <tr className="bg-gray-50 border-b border-gray-100 text-[11px] font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                        <th className="px-5 py-4">Ticket #</th>
+                        <th className="px-5 py-4">Email</th>
+                        <th className="px-5 py-4">Phone</th>
+                        <th className="px-5 py-4">Visitors</th>
+                        <th className="px-5 py-4">Total Paid</th>
+                        <th className="px-5 py-4">Status</th>
+                        <th className="px-5 py-4">Date</th>
+                        <th className="px-5 py-4 text-center">Action</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-50">
+                    <tbody className="divide-y divide-gray-50 text-xs">
                       {tickets.map(t => (
-                        <tr key={t.id} className="hover:bg-indigo-50/30 transition-colors">
-                          <td className="px-4 py-4 font-mono text-sm font-bold text-indigo-600 whitespace-nowrap">{t.ticketNumber}</td>
-                          <td className="px-4 py-4 text-sm text-gray-600 max-w-[160px] truncate">{t.userEmail}</td>
-                          <td className="px-4 py-4 text-sm text-gray-600 whitespace-nowrap">{t.phone||'—'}</td>
-                          <td className="px-4 py-4 whitespace-nowrap">
-                            <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full text-xs font-bold">{t.adults}A</span>{' '}
-                            <span className="bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full text-xs font-bold">{t.children}C</span>
+                        <tr key={t.id} className="hover:bg-indigo-50/40 transition-colors">
+                          <td className="px-5 py-4 font-mono font-extrabold text-indigo-600 whitespace-nowrap">#{t.ticketNumber}</td>
+                          <td className="px-5 py-4 font-medium text-gray-700 max-w-[160px] truncate">{t.userEmail}</td>
+                          <td className="px-5 py-4 text-gray-600 font-mono whitespace-nowrap">{t.phone || '—'}</td>
+                          <td className="px-5 py-4 whitespace-nowrap">
+                            <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full text-[11px] font-bold">{t.adults} Adults</span>{' '}
+                            <span className="bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full text-[11px] font-bold">{t.children} Children</span>
                           </td>
-                          <td className="px-4 py-4 text-sm font-black text-gray-900 whitespace-nowrap">₹{t.totalPrice}</td>
-                          <td className="px-4 py-4"><StatusBadge status={t.status} /></td>
-                          <td className="px-4 py-4 text-sm text-gray-500 whitespace-nowrap">{format(new Date(t.createdAt),'dd MMM yy')}</td>
-                          <td className="px-4 py-4">
+                          <td className="px-5 py-4 font-black text-gray-900 text-sm whitespace-nowrap">₹{t.totalPrice}</td>
+                          <td className="px-5 py-4 whitespace-nowrap"><StatusBadge status={t.status} /></td>
+                          <td className="px-5 py-4 text-gray-400 whitespace-nowrap">{format(new Date(t.createdAt),'dd MMM yyyy')}</td>
+                          <td className="px-5 py-4 text-center whitespace-nowrap">
                             <button onClick={() => openVerifyModal(t)}
-                              disabled={t.status==='USED'||t.status==='CANCELLED'}
-                              className={`flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-lg whitespace-nowrap transition-all ${
-                                t.status==='USED'||t.status==='CANCELLED'
-                                  ? 'text-gray-300 bg-gray-50 cursor-not-allowed'
+                              disabled={t.status === 'USED' || t.status === 'CANCELLED'}
+                              className={`inline-flex items-center gap-1.5 text-xs font-extrabold px-3.5 py-1.5 rounded-xl transition-all shadow-xs ${
+                                t.status === 'USED' || t.status === 'CANCELLED'
+                                  ? 'text-gray-300 bg-gray-100 cursor-not-allowed'
                                   : 'text-white bg-indigo-600 hover:bg-indigo-700'
                               }`}>
-                              <Eye className="h-3.5 w-3.5" /> Verify
+                              <Eye className="h-3.5 w-3.5" /> Gate Verify
                             </button>
                           </td>
                         </tr>
@@ -492,65 +535,74 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* ─── SHOWS ─── */}
+        {/* ─── TAB 4: SHOWS ─── */}
         {activeTab === 'shows' && (
-          <div className="space-y-6">
+          <div className="space-y-6 animate-fadeIn">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-extrabold text-gray-900">Special Shows</h2>
+              <div>
+                <h2 className="text-xl sm:text-2xl font-black text-gray-900">Special Shows & Planetarium</h2>
+                <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Schedule ticketed exhibitions, 3D film shows, and sessions</p>
+              </div>
               <button onClick={() => setShowForm(!showForm)}
-                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-md">
-                <Plus className="h-4 w-4" /> Add Show
+                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-2xl font-bold text-xs sm:text-sm transition-all shadow-md">
+                <Plus className="h-4 w-4" /> {showForm ? 'Close' : 'Add Show'}
               </button>
             </div>
+
             {showForm && (
-              <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
-                <h3 className="font-bold text-gray-900 mb-5">Create New Show</h3>
+              <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+                <h3 className="font-extrabold text-gray-900 text-base mb-4">Create New Exhibition Show</h3>
                 <form onSubmit={handleCreateShow} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input type="text" placeholder="Show Name *" required value={newShow.name}
+                    <input type="text" placeholder="Show Title (e.g. 3D Dinosaur World) *" required value={newShow.name}
                       onChange={e => setNewShow({...newShow, name: e.target.value})}
-                      className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-400 outline-none text-sm" />
+                      className="px-4 py-3 border border-gray-200 rounded-xl focus:border-indigo-500 outline-none text-xs sm:text-sm" />
                     <input type="datetime-local" required value={newShow.showTime}
                       onChange={e => setNewShow({...newShow, showTime: e.target.value})}
-                      className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-400 outline-none text-sm" />
-                    <input type="number" placeholder="Price ₹ *" required value={newShow.price}
+                      className="px-4 py-3 border border-gray-200 rounded-xl focus:border-indigo-500 outline-none text-xs sm:text-sm" />
+                    <input type="number" placeholder="Ticket Price (₹) *" required value={newShow.price}
                       onChange={e => setNewShow({...newShow, price: e.target.value})}
-                      className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-400 outline-none text-sm" />
-                    <input type="number" placeholder="Seat Limit *" required value={newShow.seatLimit}
+                      className="px-4 py-3 border border-gray-200 rounded-xl focus:border-indigo-500 outline-none text-xs sm:text-sm" />
+                    <input type="number" placeholder="Max Seat Limit *" required value={newShow.seatLimit}
                       onChange={e => setNewShow({...newShow, seatLimit: e.target.value})}
-                      className="px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-400 outline-none text-sm" />
+                      className="px-4 py-3 border border-gray-200 rounded-xl focus:border-indigo-500 outline-none text-xs sm:text-sm" />
                   </div>
-                  <textarea placeholder="Description (optional)" rows={2} value={newShow.description}
+                  <textarea placeholder="Show description or visitor guidelines (optional)" rows={2} value={newShow.description}
                     onChange={e => setNewShow({...newShow, description: e.target.value})}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-400 outline-none text-sm resize-none" />
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-indigo-500 outline-none text-xs sm:text-sm resize-none" />
                   <div className="flex gap-3">
-                    <button type="submit" className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold text-sm">Create Show</button>
-                    <button type="button" onClick={() => setShowForm(false)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-bold text-sm">Cancel</button>
+                    <button type="submit" className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold text-xs sm:text-sm shadow-sm">
+                      Create & Publish Show
+                    </button>
+                    <button type="button" onClick={() => setShowForm(false)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-xl font-bold text-xs sm:text-sm">
+                      Cancel
+                    </button>
                   </div>
                 </form>
               </div>
             )}
+
             {shows.length === 0 ? (
-              <div className="text-center py-16 bg-white rounded-2xl shadow-md border border-gray-100">
-                <Zap className="h-12 w-12 mx-auto mb-3 text-gray-200" />
-                <p className="font-bold text-gray-500">No shows scheduled</p>
-                <p className="text-sm text-gray-400 mt-1">Add a show — it appears in the chatbot instantly</p>
+              <div className="text-center py-16 bg-white rounded-3xl shadow-sm border border-gray-100">
+                <Zap className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                <p className="font-extrabold text-gray-800">No shows scheduled</p>
+                <p className="text-xs text-gray-400 mt-1">Add a show and it will appear directly in the visitor AI chatbot.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {shows.map(show => (
-                  <div key={show.id} className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden hover:shadow-lg transition-shadow">
+                  <div key={show.id} className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
                     <div className="h-1.5 bg-gradient-to-r from-indigo-500 to-purple-500" />
                     <div className="p-5">
-                      <h3 className="font-extrabold text-gray-900 mb-3">{show.showName || show.name}</h3>
-                      <div className="space-y-2 text-sm text-gray-600 mb-4">
-                        <p className="flex items-center gap-2"><Calendar className="h-4 w-4 text-indigo-400 flex-shrink-0" />{format(new Date(show.showTime),'dd MMM yyyy, HH:mm')}</p>
-                        <p className="flex items-center gap-2"><DollarSign className="h-4 w-4 text-green-500 flex-shrink-0" /><span className="font-extrabold text-green-700 text-base">₹{show.price}</span><span className="text-gray-400 text-xs">/ ticket</span></p>
-                        <p className="flex items-center gap-2"><Users className="h-4 w-4 text-blue-400 flex-shrink-0" />{show.availableSeats ?? show.seatLimit} / {show.seatLimit} seats</p>
+                      <h3 className="font-extrabold text-gray-900 text-base mb-3">{show.showName || show.name}</h3>
+                      <div className="space-y-2 text-xs sm:text-sm text-gray-600 mb-4">
+                        <p className="flex items-center gap-2"><Calendar className="h-4 w-4 text-indigo-500 flex-shrink-0" />{format(new Date(show.showTime),'dd MMM yyyy, HH:mm')}</p>
+                        <p className="flex items-center gap-2"><DollarSign className="h-4 w-4 text-emerald-500 flex-shrink-0" /><span className="font-black text-emerald-700 text-base">₹{show.price}</span><span className="text-gray-400 text-xs">/ ticket</span></p>
+                        <p className="flex items-center gap-2"><Users className="h-4 w-4 text-blue-500 flex-shrink-0" />{show.availableSeats ?? show.seatLimit} / {show.seatLimit} seats left</p>
                       </div>
                       {show.description && <p className="text-xs text-gray-400 mb-4 line-clamp-2">{show.description}</p>}
-                      <button onClick={() => handleDeleteShow(show.id)} className="w-full flex items-center justify-center gap-1.5 bg-red-50 hover:bg-red-100 text-red-600 py-2 rounded-lg text-sm font-bold">
-                        <Trash2 className="h-4 w-4" /> Delete Show
+                      <button onClick={() => handleDeleteShow(show.id)} className="w-full flex items-center justify-center gap-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 py-2.5 rounded-xl text-xs font-bold transition-colors">
+                        <Trash2 className="h-3.5 w-3.5" /> Delete Show
                       </button>
                     </div>
                   </div>
@@ -560,226 +612,202 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* ─── QR CODE ─── */}
+        {/* ─── TAB 5: PROFILE ─── */}
+        {activeTab === 'profile' && (
+          <div className="max-w-4xl mx-auto animate-fadeIn">
+            <ProfileEditor profile={museum} onUpdate={() => fetchAll(true)} />
+          </div>
+        )}
+
+        {/* ─── TAB 6: MEDIA ─── */}
+        {activeTab === 'media' && (
+          <div className="max-w-5xl mx-auto animate-fadeIn">
+            <MediaManager images={museum?.images || museum?.galleryImages || []} onUpdate={() => fetchAll(true)} />
+          </div>
+        )}
+
+        {/* ─── TAB 7: REVIEWS ─── */}
+        {activeTab === 'reviews' && (
+          <div className="max-w-4xl mx-auto animate-fadeIn">
+            <ReviewManager reviews={reviews} onUpdate={() => fetchAll(true)} />
+          </div>
+        )}
+
+        {/* ─── TAB 8: QR CODE ─── */}
         {activeTab === 'qr' && (
-          <div className="max-w-lg mx-auto">
-            <h2 className="text-2xl font-extrabold text-gray-900 mb-8 text-center">Museum QR Code</h2>
-            <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-8 space-y-6">
-              <div className="flex justify-center bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6">
-                <div className="p-4 bg-white rounded-xl shadow-lg border-4 border-white">
+          <div className="max-w-xl mx-auto animate-fadeIn">
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-black text-gray-900">Museum Entrance QR Code</h2>
+              <p className="text-xs text-gray-500 mt-1">Visitors scan this QR code at your entrance gate to instantly open the booking chatbot.</p>
+            </div>
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 space-y-6">
+              <div className="flex justify-center bg-gradient-to-br from-indigo-50/80 via-purple-50/80 to-slate-50 p-8 rounded-3xl border border-indigo-100/50">
+                <div className="p-4 bg-white rounded-2xl shadow-xl border-4 border-white">
                   <QRCodeCanvas 
                     id="museum-qr-code"
                     value={`http://localhost:5173/museum/${museumId}`} 
-                    size={200}
+                    size={220}
                     level="H"
                     includeMargin={true}
                   />
                 </div>
               </div>
-              <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
-                <p className="text-sm font-bold text-indigo-800 mb-1">📱 When scanned, this QR opens:</p>
-                <code className="text-xs text-indigo-700 bg-white px-3 py-1.5 rounded-lg border border-indigo-100 block font-mono break-all">
+              <div className="bg-indigo-50/70 border border-indigo-100 rounded-2xl p-4">
+                <p className="text-xs font-bold text-indigo-900 mb-1 flex items-center gap-1.5">
+                  <span>📱</span> Direct Chatbot Link:
+                </p>
+                <code className="text-xs text-indigo-700 bg-white px-3 py-2 rounded-xl border border-indigo-100 block font-mono break-all font-semibold">
                   http://localhost:5173/museum/{museumId}
                 </code>
-                <p className="text-xs text-indigo-600 mt-2">→ Opens the booking chatbot directly for your museum</p>
               </div>
-              <p className="text-center text-gray-500 text-sm">
-                Print this and display it at your museum entrance. Visitors scan → book instantly on their phones.
-              </p>
               <button onClick={downloadQRCode}
-                className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white py-3.5 rounded-xl font-extrabold transition-all shadow-md">
-                <Download className="h-5 w-5" /> Download QR Code
+                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white py-4 rounded-2xl font-black text-sm transition-all shadow-md">
+                <Download className="h-5 w-5" /> Download Printable QR Poster
               </button>
             </div>
           </div>
         )}
 
-        {/* ─── SETTINGS ─── */}
+        {/* ─── TAB 9: SETTINGS ─── */}
         {activeTab === 'settings' && (
-          <div className="max-w-2xl space-y-6">
-            <h2 className="text-2xl font-extrabold text-gray-900">Settings</h2>
+          <div className="max-w-3xl mx-auto space-y-6 animate-fadeIn">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-black text-gray-900">Museum Controls & Gate Staff Security</h2>
+              <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Manage ticket pricing, capacity, and the 4-digit staff entrance PIN</p>
+            </div>
 
-            {/* STAFF PIN */}
-            <div className="bg-gradient-to-br from-indigo-700 via-indigo-600 to-purple-700 rounded-2xl p-6 text-white shadow-xl">
+            {/* STAFF ENTRY PIN CARD */}
+            <div className="bg-gradient-to-br from-indigo-950 via-indigo-900 to-purple-950 rounded-3xl p-6 sm:p-8 text-white shadow-xl border border-indigo-800/50">
               <div className="flex items-center gap-3 mb-3">
-                <div className="bg-white/20 p-2.5 rounded-xl"><Shield className="h-5 w-5" /></div>
+                <div className="bg-indigo-500/30 border border-indigo-400/30 p-2.5 rounded-2xl">
+                  <ShieldCheck className="h-6 w-6 text-emerald-400" />
+                </div>
                 <div>
-                  <h3 className="font-extrabold text-lg">Museum Staff Code</h3>
-                  <p className="text-indigo-200 text-xs">Permanent 4-digit entry validation PIN</p>
+                  <h3 className="font-black text-base sm:text-lg">Gate Staff 4-Digit Validation Code</h3>
+                  <p className="text-indigo-200/80 text-xs">Used by gate attendants to validate tickets to USED</p>
                 </div>
               </div>
-              <p className="text-indigo-200 text-sm mb-5 leading-relaxed">
-                Staff show this to the visitor at the gate. Visitor enters it in their ticket to mark it <strong>USED</strong>. Do not share publicly.
+              <p className="text-indigo-200/70 text-xs sm:text-sm mb-6 leading-relaxed">
+                When visitors arrive at the museum gate, staff provide this 4-digit code. The visitor enters it to mark their pass verified.
               </p>
 
-              {/* PIN digits */}
-              <div className="bg-black/20 rounded-xl p-4 mb-4">
-                <p className="text-xs text-indigo-300 font-bold uppercase tracking-widest mb-3">STAFF ENTRY CODE</p>
+              {/* PIN Box */}
+              <div className="bg-black/30 border border-white/10 rounded-2xl p-5 mb-5 backdrop-blur-md">
                 <div className="flex items-center justify-between">
-                  <div className="flex gap-2 sm:gap-3">
-                    {(showPin ? (museum?.staffPin || '????') : '••••').split('').map((ch, i) => (
-                      <div key={i} className="w-12 h-12 sm:w-14 sm:h-14 bg-white/20 rounded-xl flex items-center justify-center text-2xl sm:text-3xl font-black border-2 border-white/30">
+                  <div className="flex gap-2 sm:gap-4">
+                    {(showPin ? (museum?.staffPin || '1234') : '••••').split('').map((ch, i) => (
+                      <div key={i} className="w-12 h-14 sm:w-16 sm:h-16 bg-white/10 rounded-2xl flex items-center justify-center text-2xl sm:text-3xl font-black border border-white/20 font-mono shadow-inner">
                         {ch}
                       </div>
                     ))}
                   </div>
                   <div className="flex flex-col gap-2 ml-3">
-                    <button onClick={() => setShowPin(p=>!p)} title={showPin?'Hide':'Show'}
-                      className="bg-white/20 hover:bg-white/30 p-2.5 rounded-lg transition-all">
-                      {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    <button onClick={() => setShowPin(p => !p)} title={showPin ? 'Hide PIN' : 'Show PIN'}
+                      className="bg-white/15 hover:bg-white/25 p-3 rounded-xl transition-all border border-white/10">
+                      {showPin ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5 text-white" />}
                     </button>
                     <button onClick={handleCopyPin} title="Copy code"
-                      className="bg-white/20 hover:bg-white/30 p-2.5 rounded-lg transition-all">
-                      {pinCopied ? <Check className="h-4 w-4 text-green-300" /> : <Copy className="h-4 w-4" />}
+                      className="bg-white/15 hover:bg-white/25 p-3 rounded-xl transition-all border border-white/10">
+                      {pinCopied ? <Check className="h-5 w-5 text-emerald-400" /> : <Copy className="h-5 w-5 text-white" />}
                     </button>
                   </div>
                 </div>
               </div>
 
-              {/* Regenerate */}
               <button onClick={handleRegeneratePin} disabled={regeneratingPin}
-                className="w-full flex items-center justify-center gap-2 bg-white/15 hover:bg-white/25 disabled:opacity-40 text-white py-3 rounded-xl font-bold text-sm border border-white/20 transition-all">
+                className="w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 disabled:opacity-50 text-white py-3.5 rounded-2xl font-bold text-xs sm:text-sm border border-white/20 transition-all">
                 <RefreshCcw className={`h-4 w-4 ${regeneratingPin ? 'animate-spin' : ''}`} />
-                {regeneratingPin ? 'Generating new code…' : '🔄 Generate New Code'}
+                {regeneratingPin ? 'Generating…' : 'Regenerate New Staff PIN'}
               </button>
-              <p className="text-xs text-indigo-300 text-center mt-2">
-                ⚠️ Old code stops working immediately. Inform all staff before generating a new one.
-              </p>
             </div>
 
-            {/* PRICES & CAPACITY */}
-            <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
-              <h3 className="font-extrabold text-gray-900 mb-5 flex items-center gap-2">
-                <Settings className="h-5 w-5 text-indigo-500" /> Ticket Prices & Capacity
+            {/* PRICES & CAPACITY FORM */}
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 sm:p-8">
+              <h3 className="font-extrabold text-gray-900 text-base mb-5 flex items-center gap-2">
+                <Settings className="h-5 w-5 text-indigo-600" /> Ticket Pricing & Daily Seat Limits
               </h3>
-              <form onSubmit={handleSaveSettings} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+              <form onSubmit={handleSaveSettings} className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Adult Price (₹)</label>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Adult Ticket Price (₹)</label>
                     <input type="number" min="0" value={settingsForm.adultPrice}
-                      onChange={e => setSettingsForm(p=>({...p,adultPrice:e.target.value}))}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none text-2xl font-black text-indigo-700" />
+                      onChange={e => setSettingsForm(p => ({...p, adultPrice: e.target.value}))}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-2xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none text-xl font-black text-indigo-700" />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Child Price (₹)</label>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Child Ticket Price (₹)</label>
                     <input type="number" min="0" value={settingsForm.childPrice}
-                      onChange={e => setSettingsForm(p=>({...p,childPrice:e.target.value}))}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none text-2xl font-black text-purple-700" />
+                      onChange={e => setSettingsForm(p => ({...p, childPrice: e.target.value}))}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-2xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none text-xl font-black text-purple-700" />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Daily Seat Limit</label>
+                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Daily Max Visitors Limit</label>
                     <input type="number" min="1" value={settingsForm.seatLimit}
-                      onChange={e => setSettingsForm(p=>({...p,seatLimit:e.target.value}))}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 outline-none text-2xl font-black text-gray-700" />
+                      onChange={e => setSettingsForm(p => ({...p, seatLimit: e.target.value}))}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-2xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none text-xl font-black text-gray-800" />
                   </div>
-                  <div className="flex flex-col gap-2">
+                  <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Open Time</label>
+                      <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Open Time</label>
                       <input type="time" value={settingsForm.openingTime}
-                        onChange={e => setSettingsForm(p=>({...p,openingTime:e.target.value}))}
-                        className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl focus:border-indigo-400 outline-none text-sm font-semibold" />
+                        onChange={e => setSettingsForm(p => ({...p, openingTime: e.target.value}))}
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:border-indigo-500 outline-none text-xs font-bold" />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Close Time</label>
+                      <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Close Time</label>
                       <input type="time" value={settingsForm.closingTime}
-                        onChange={e => setSettingsForm(p=>({...p,closingTime:e.target.value}))}
-                        className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl focus:border-indigo-400 outline-none text-sm font-semibold" />
+                        onChange={e => setSettingsForm(p => ({...p, closingTime: e.target.value}))}
+                        className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:border-indigo-500 outline-none text-xs font-bold" />
                     </div>
                   </div>
                 </div>
-                <div className="bg-blue-50 border border-blue-100 rounded-xl p-3.5 text-sm text-blue-800">
-                  ℹ️ All changes reflect <strong>instantly</strong> in the visitor chatbot (15-second sync).
-                </div>
+
                 <button type="submit" disabled={savingSettings}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white py-3.5 rounded-xl font-extrabold text-sm transition-all shadow-md">
-                  {savingSettings ? 'Saving…' : '✅ Save Settings'}
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white py-3.5 rounded-2xl font-black text-xs sm:text-sm transition-all shadow-md">
+                  {savingSettings ? 'Saving Changes…' : 'Save Pricing & Time Settings'}
                 </button>
               </form>
             </div>
-
-            {/* BOOKING CONTROL */}
-            <div className="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
-              <h3 className="font-extrabold text-gray-900 mb-4">Booking Control</h3>
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                  <p className="font-semibold text-gray-800">Booking Status</p>
-                  <p className="text-sm text-gray-500 mt-0.5">Toggle to open or close bookings for all visitors</p>
-                </div>
-                <button onClick={handleToggleBooking} disabled={bookingToggling}
-                  className={`flex items-center gap-2 px-5 py-3 rounded-xl font-extrabold text-sm transition-all shadow-md whitespace-nowrap ${
-                    museum?.bookingStatus ? 'bg-emerald-500 hover:bg-emerald-600 text-white' : 'bg-red-500 hover:bg-red-600 text-white'
-                  }`}>
-                  {museum?.bookingStatus
-                    ? <><ToggleRight className="h-5 w-5" /> OPEN — Click to Close</>
-                    : <><ToggleLeft  className="h-5 w-5" /> CLOSED — Click to Open</>}
-                </button>
-              </div>
-            </div>
           </div>
         )}
-
-        {/* ─── PROFILE ─── */}
-        {activeTab === 'profile' && (
-          <div className="space-y-6 max-w-4xl mx-auto">
-            <ProfileEditor profile={museum} onUpdate={() => fetchAll(true)} />
-          </div>
-        )}
-
-        {/* ─── MEDIA ─── */}
-        {activeTab === 'media' && (
-          <div className="space-y-6 max-w-5xl mx-auto">
-            <MediaManager images={museum?.images || museum?.galleryImages || []} onUpdate={() => fetchAll(true)} />
-          </div>
-        )}
-
-        {/* ─── REVIEWS ─── */}
-        {activeTab === 'reviews' && (
-          <div className="space-y-6 max-w-4xl mx-auto">
-            <ReviewManager reviews={reviews} onUpdate={() => fetchAll(true)} />
-          </div>
-        )}
-      </div>
+      </main>
 
       {/* ══════ VERIFY MODAL ══════ */}
       {showVerifyModal && selectedTicket && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden">
+        <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden border border-gray-100">
             <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6">
-              <h2 className="text-xl font-extrabold">Verify Ticket</h2>
-              <p className="text-indigo-200 text-sm mt-1">Enter 4-digit staff code to grant entry</p>
+              <h2 className="text-lg font-black">Gate Ticket Verification</h2>
+              <p className="text-indigo-200 text-xs mt-0.5">Enter 4-digit staff PIN to grant entrance</p>
             </div>
             <div className="p-6 space-y-4">
-              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                <p className="font-extrabold text-gray-900 font-mono">{selectedTicket.ticketNumber}</p>
-                <p className="text-sm text-gray-600 mt-0.5">{selectedTicket.userEmail}</p>
-                <div className="flex items-center gap-2 mt-2 flex-wrap">
-                  <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full text-xs font-bold">{selectedTicket.adults} Adult</span>
-                  <span className="bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full text-xs font-bold">{selectedTicket.children} Child</span>
-                  <span className="ml-auto font-black text-gray-900">₹{selectedTicket.totalPrice}</span>
+              <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                <p className="font-black text-gray-900 font-mono text-sm">#{selectedTicket.ticketNumber}</p>
+                <p className="text-xs text-gray-600 mt-0.5 truncate">{selectedTicket.userEmail}</p>
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full text-[11px] font-bold">{selectedTicket.adults}A</span>
+                  <span className="bg-purple-50 text-purple-700 px-2.5 py-0.5 rounded-full text-[11px] font-bold">{selectedTicket.children}C</span>
+                  <span className="ml-auto font-black text-gray-900 text-sm">₹{selectedTicket.totalPrice}</span>
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">4-Digit Staff Code</label>
-                <div className="relative">
-                  <input type={showVerifyPin?'text':'password'} maxLength={4}
-                    value={verifyCode}
-                    onChange={e => setVerifyCode(e.target.value.replace(/\D/g,''))}
-                    className="w-full px-4 py-5 border-2 border-indigo-300 rounded-xl text-center text-4xl font-black tracking-[0.6em] focus:border-indigo-600 focus:ring-4 focus:ring-indigo-100 outline-none font-mono"
-                    placeholder="0000" autoFocus
-                  />
-                  <button onClick={() => setShowVerifyPin(p=>!p)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                    {showVerifyPin ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                  </button>
-                </div>
+                <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1.5">Staff Code PIN</label>
+                <input 
+                  type="password" 
+                  maxLength={4}
+                  value={verifyCode}
+                  onChange={e => setVerifyCode(e.target.value.replace(/\D/g,''))}
+                  className="w-full py-3.5 border-2 border-indigo-200 rounded-2xl text-center text-3xl font-black tracking-[0.5em] focus:border-indigo-600 outline-none font-mono"
+                  placeholder="0000" autoFocus
+                />
               </div>
-              <div className="flex gap-3">
-                <button onClick={handleVerifyTicket} disabled={verifyCode.length!==4}
-                  className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-200 disabled:text-gray-400 text-white py-3.5 rounded-xl font-extrabold transition-all">
-                  ✅ Grant Entry
+              <div className="flex gap-2 pt-1">
+                <button onClick={handleVerifyTicket} disabled={verifyCode.length !== 4}
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-200 disabled:text-gray-400 text-white py-3 rounded-2xl font-black text-xs transition-all shadow-sm">
+                  Grant Entry
                 </button>
                 <button onClick={() => { setShowVerifyModal(false); setSelectedTicket(null); setVerifyCode(''); }}
-                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3.5 rounded-xl font-extrabold transition-all">
+                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-3 rounded-2xl font-bold text-xs transition-all">
                   Cancel
                 </button>
               </div>

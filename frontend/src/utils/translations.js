@@ -103,6 +103,15 @@ export const translations = {
     bookThisNow: '🎫 Book Ticket Now',
     aiThinking: 'AI Guide is searching museum info…',
 
+    // Google Auth Gate
+    welcomeVisitorTitle: 'Welcome to Museum Assistant',
+    welcomeVisitorDesc: 'Sign in with your Google account once so all your booked tickets, QR passes, and payment receipts stay permanently saved in your history.',
+    continueWithGoogle: 'Continue with Google',
+    guestContinue: 'Continue as Guest',
+    signedInAs: 'Signed in as',
+    switchAccount: 'Switch',
+    whyGoogleNotice: '🔒 Google sign-in securely connects your tickets so you never lose your entry passes.',
+
     // Dashboard common
     adminDashboard: 'Admin Dashboard',
     overview: 'Overview',
@@ -215,6 +224,15 @@ export const translations = {
     bookThisNow: '🎫 இப்போது முன்பதிவு செய்க',
     aiThinking: 'AI வழிகாட்டி தகவல்களைத் திரட்டுகிறது…',
 
+    // Google Auth Gate
+    welcomeVisitorTitle: 'அருங்காட்சியகத்திற்கு நல்வரவு',
+    welcomeVisitorDesc: 'உங்கள் முன்பதிவு டிக்கெட்டுகள் மற்றும் QR குறியீடுகளை எப்போதும் எளிதாகப் பெற கூகுள் மூலம் தொடரவும்.',
+    continueWithGoogle: 'Google மூலம் தொடர்க',
+    guestContinue: 'விருந்தினராக தொடர்க',
+    signedInAs: 'இணைக்கப்பட்டுள்ள கணக்கு',
+    switchAccount: 'மாற்றுக',
+    whyGoogleNotice: '🔒 Google கணக்கு மூலம் டிக்கெட்டுகள் உங்கள் வரலாற்றில் பாதுகாப்பாக சேமிக்கப்படும்.',
+
     adminDashboard: 'நிர்வாக டாஷ்போர்டு',
     overview: 'கண்ணோட்டம்',
     aiCopilot: 'AI வழிகாட்டி',
@@ -325,6 +343,15 @@ export const translations = {
     askAiBtn: 'AI गाइड',
     bookThisNow: '🎫 अभी टिकट बुक करें',
     aiThinking: 'AI गाइड संग्रहालय की जानकारी खोज रहा है…',
+
+    // Google Auth Gate
+    welcomeVisitorTitle: 'म्यूजियम असिस्टेंट में स्वागत है',
+    welcomeVisitorDesc: 'अपने बुक किए गए टिकट और क्यूआर पास को हमेशा सुरक्षित रखने के लिए एक बार गूगल खाते से लॉगिन करें।',
+    continueWithGoogle: 'Google के साथ जारी रखें',
+    guestContinue: 'अतिथि के रूप में जारी रखें',
+    signedInAs: 'लॉग इन खाता',
+    switchAccount: 'बदलें',
+    whyGoogleNotice: '🔒 Google लॉगिन से आपके टिकट हमेशा आपकी हिस्ट्री में सुरक्षित रहते हैं।',
 
     adminDashboard: 'एडमिन डैशबोर्ड',
     overview: 'अवलोकन',
@@ -437,6 +464,15 @@ export const translations = {
     bookThisNow: '🎫 ഇപ്പോൾ തന്നെ ടിക്കറ്റ് ബുക്ക് ചെയ്യുക',
     aiThinking: 'AI ഗൈഡ് മ്യൂസിയം വിവരങ്ങൾ കണ്ടെത്തുന്നു…',
 
+    // Google Auth Gate
+    welcomeVisitorTitle: 'മ്യൂസിയം അസിസ്റ്റന്റിലേക്ക് സ്വാഗതം',
+    welcomeVisitorDesc: 'നിങ്ങൾ ബുക്ക് ചെയ്യുന്ന ടിക്കറ്റുകളും ക്യുആർ കോഡുകളും ചരിത്രത്തിൽ എപ്പോഴും സൂക്ഷിക്കാൻ ഗൂഗിൾ അക്കൗണ്ട് ഉപയോഗിക്കുക.',
+    continueWithGoogle: 'Google വഴി തുടരുക',
+    guestContinue: 'അതിഥിയായി തുടരുക',
+    signedInAs: 'ലോഗിൻ ചെയ്ത അക്കൗണ്ട്',
+    switchAccount: 'മാറ്റുക',
+    whyGoogleNotice: '🔒 Google ലോഗിൻ വഴി ടിക്കറ്റുകൾ നിങ്ങളുടെ ഹിസ്റ്ററിയിൽ സുരക്ഷിതമായി നിലനിൽക്കും.',
+
     adminDashboard: 'അഡ്മിൻ ഡാഷ്‌ബോർഡ്',
     overview: 'അവലോകനം',
     aiCopilot: 'AI കോപൈലറ്റ്',
@@ -547,6 +583,15 @@ export const translations = {
     askAiBtn: 'AI గైడ్',
     bookThisNow: '🎫 ఇప్పుడే టికెట్ బుక్ చేయండి',
     aiThinking: 'AI గైడ్ సమాచారాన్ని వెతుకుతోంది…',
+
+    // Google Auth Gate
+    welcomeVisitorTitle: 'మ్యూజియం అసిస్టెంట్‌కి స్వాగతం',
+    welcomeVisitorDesc: 'మీరు బుక్ చేసుకున్న టికెట్లు మరియు క్యూఆర్ పాస్‌లను ఎల్లప్పుడూ భద్రపరచడానికి ఒకసారి గూగుల్ ద్వారా సైన్ ఇన్ అవ్వండి.',
+    continueWithGoogle: 'Google తో కొనసాగించండి',
+    guestContinue: 'గెస్ట్‌గా కొనసాగండి',
+    signedInAs: 'లాగిన్ అయిన ఖాతా',
+    switchAccount: 'మార్చు',
+    whyGoogleNotice: '🔒 Google లాగిన్ ద్వారా మీ టికెట్లు మీ హిస్టరీలో ఎప్పటికీ సురక్షితంగా ఉంటాయి.',
 
     adminDashboard: 'అడ్మిన్ డాష్‌బోర్డ్',
     overview: 'సమీక్ష',
