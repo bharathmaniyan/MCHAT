@@ -1273,15 +1273,16 @@ const MuseumChatbot = () => {
           style={{ height: 'calc(100vh - 100px)', maxHeight: '780px' }}>
 
           {/* ── Header with Language Switcher & User Account ── */}
-          <div className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-600 px-4 py-3.5 flex items-center justify-between flex-shrink-0">
+          <div className="bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-600 px-4 py-3 flex flex-wrap items-center justify-between gap-y-3 gap-x-4 flex-shrink-0">
+            {/* Left: Museum Info */}
             <div className="flex items-center gap-2.5 min-w-0 flex-1">
               <div className="bg-white/20 p-2 rounded-full flex-shrink-0">
                 <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 3L2 9h20L12 3zM4 9v8h16V9M8 17v-5h3v5M13 17v-5h3v5" />
                 </svg>
               </div>
-              <div className="min-w-0 flex-1">
-                <h1 className="text-white font-bold text-xs sm:text-sm leading-tight">
+              <div className="min-w-0">
+                <h1 className="text-white font-bold text-sm leading-tight break-words">
                   {museum?.museumName || 'Museum Assistant'}
                 </h1>
                 <div className="flex items-center gap-1.5 mt-0.5">
@@ -1292,7 +1293,7 @@ const MuseumChatbot = () => {
             </div>
 
             {/* Right Controls: Language Selector, History, User profile */}
-            <div className="flex items-center gap-1.5 flex-shrink-0">
+            <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
               {/* Language Switcher Dropdown */}
               <div className="relative">
                 <select
