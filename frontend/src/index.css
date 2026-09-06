@@ -286,3 +286,138 @@
     opacity: 1;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────
+   DYNAMIC TICKET STYLING & LIVE HOLOGRAPHIC COLOR ANIMATIONS
+   ───────────────────────────────────────────────────────────── */
+
+@keyframes dynamic-border-rotate {
+  0% {
+    filter: hue-rotate(0deg);
+  }
+  50% {
+    filter: hue-rotate(180deg);
+  }
+  100% {
+    filter: hue-rotate(360deg);
+  }
+}
+
+@keyframes dynamic-shimmer {
+  0% {
+    transform: translateX(-150%) skewX(-25deg);
+  }
+  50%, 100% {
+    transform: translateX(250%) skewX(-25deg);
+  }
+}
+
+@keyframes dynamic-laser-sweep {
+  0%, 100% {
+    top: 0%;
+    opacity: 0.2;
+  }
+  50% {
+    top: 92%;
+    opacity: 0.9;
+  }
+}
+
+@keyframes dynamic-hologram {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Live Dynamic Active Ticket */
+.ticket-dynamic-active {
+  position: relative;
+  background: linear-gradient(135deg, #059669 0%, #0284c7 40%, #7c3aed 75%, #ec4899 100%);
+  background-size: 300% 300%;
+  animation: dynamic-hologram 8s ease infinite, dynamic-border-rotate 12s linear infinite;
+  border-radius: 1.5rem;
+  padding: 3px;
+  box-shadow: 0 12px 35px -8px rgba(16, 185, 129, 0.4), 0 0 25px 2px rgba(6, 182, 212, 0.25);
+  transition: all 0.3s ease;
+}
+
+.ticket-dynamic-active:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 45px -8px rgba(16, 185, 129, 0.55), 0 0 30px 4px rgba(124, 58, 237, 0.35);
+}
+
+/* Live Dynamic Used Ticket (Metalic Verified Tone) */
+.ticket-dynamic-used {
+  position: relative;
+  background: linear-gradient(135deg, #475569 0%, #64748b 50%, #d97706 100%);
+  border-radius: 1.5rem;
+  padding: 2px;
+  box-shadow: 0 10px 25px -6px rgba(100, 116, 139, 0.3);
+}
+
+/* Live Dynamic Pending Ticket */
+.ticket-dynamic-pending {
+  position: relative;
+  background: linear-gradient(135deg, #f59e0b 0%, #ef4444 50%, #8b5cf6 100%);
+  background-size: 200% 200%;
+  animation: dynamic-hologram 6s ease infinite;
+  border-radius: 1.5rem;
+  padding: 2px;
+  box-shadow: 0 10px 25px -6px rgba(245, 158, 11, 0.35);
+}
+
+/* Inner Ticket Card Canvas */
+.ticket-card-canvas {
+  background: #ffffff;
+  border-radius: calc(1.5rem - 3px);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Dynamic Holographic Shimmer Layer */
+.hologram-shimmer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 35%,
+    rgba(255, 255, 255, 0.4) 50%,
+    rgba(255, 255, 255, 0.08) 65%,
+    transparent 100%
+  );
+  pointer-events: none;
+  animation: dynamic-shimmer 4.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* QR Code Laser Scan effect */
+.qr-scanner-laser {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #10b981, #06b6d4, transparent);
+  box-shadow: 0 0 8px #10b981;
+  animation: dynamic-laser-sweep 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Security Ribbon */
+.security-ribbon-active {
+  background: repeating-linear-gradient(
+    45deg,
+    #059669,
+    #059669 10px,
+    #047857 10px,
+    #047857 20px
+  );
+}

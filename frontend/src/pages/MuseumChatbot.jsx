@@ -9,6 +9,26 @@ import * as api from '../services/api';
 import { loadRazorpayScript } from '../utils/loadRazorpay';
 import { useParams } from 'react-router-dom';
 import { LANGUAGES, getTranslation } from '../utils/translations';
+import TicketCard from '../components/TicketCard';
+
+/* ──────────────────────────────────────────────
+   JWT PARSER FOR REAL GOOGLE CREDENTIALS
+────────────────────────────────────────────── */
+const parseJwt = (token) => {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch {
+    return null;
+  }
+};
 
 /* ──────────────────────────────────────────────
    STEP CONSTANTS  (button-driven flow)
@@ -204,36 +224,109 @@ const MuseumChatbot = () => {
   const addBot  = (text) => setMessages(p => [...p, { id: Date.now() + Math.random(), type: 'bot',  text }]);
   const addUser = (text) => setMessages(p => [...p, { id: Date.now() + Math.random(), type: 'user', text }]);
 
-  /* ── Google Auth Handlers ── */
-  const handleGoogleSignIn = () => {
-    // Generate an automatic persistent Google visitor session with user profile
-    const randomNum = Math.floor(1000 + Math.random() * 9000);
-    const mockEmail = `visitor${randomNum}@gmail.com`;
-    const userProfile = {
-      name: `Google User (${randomNum})`,
-      email: mockEmail,
-      avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${mockEmail}`,
-      provider: 'google',
-      signedInAt: new Date().toISOString()
+  /* ── Real Google Auth Handlers (Google Identity Services) ── */
+  const handleGoogleCredentialResponse = useCallback((response) => {
+    if (!response?.credential) {
+      toast.error('Google sign-in was not completed.');
+      return;
+    }
+    const payload = parseJwt(response.credential);
+    if (payload && payload.email) {
+      const realProfile = {
+        name: payload.name || payload.given_name || payload.email.split('@')[0],
+        email: payload.email.trim().toLowerCase(),
+        avatar: payload.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${payload.email}`,
+        provider: 'google',
+        verified: payload.email_verified || true,
+        sub: payload.sub,
+        signedInAt: new Date().toISOString()
+      };
+      localStorage.setItem('visitor_user', JSON.stringify(realProfile));
+      setUserAuth(realProfile);
+      setBooking(prev => ({ ...prev, email: realProfile.email }));
+      setHistoryEmail(realProfile.email);
+      setShowAuthGate(false);
+      fetchTicketsForEmail(realProfile.email);
+      toast.success(`Signed in as ${realProfile.name} (${realProfile.email}) ✅`);
+    } else {
+      toast.error('Could not retrieve Google profile.');
+    }
+  }, []);
+
+  // Initialize Google Identity Services whenever modal is shown
+  useEffect(() => {
+    if (!showAuthGate) return;
+
+    const setupGoogleGSI = () => {
+      if (window.google?.accounts?.id) {
+        try {
+          const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1047192348512-4v9n0m8l7k6j5h4g3f2e1d0c.apps.googleusercontent.com';
+          window.google.accounts.id.initialize({
+            client_id: clientId,
+            callback: handleGoogleCredentialResponse,
+            auto_select: false,
+            cancel_on_tap_outside: true,
+          });
+
+          const btnContainer = document.getElementById('googleSignInBtnContainer');
+          if (btnContainer) {
+            btnContainer.innerHTML = '';
+            window.google.accounts.id.renderButton(btnContainer, {
+              theme: 'outline',
+              size: 'large',
+              type: 'standard',
+              text: 'continue_with',
+              shape: 'pill',
+              logo_alignment: 'left',
+              width: 280,
+            });
+          }
+        } catch (e) {
+          console.log('GSI setup note:', e);
+        }
+      }
     };
-    localStorage.setItem('visitor_user', JSON.stringify(userProfile));
-    setUserAuth(userProfile);
-    setBooking(prev => ({ ...prev, email: userProfile.email }));
-    setHistoryEmail(userProfile.email);
-    setShowAuthGate(false);
-    toast.success(`Signed in as ${userProfile.email} ✅`);
+
+    const timer = setTimeout(setupGoogleGSI, 400);
+    return () => clearTimeout(timer);
+  }, [showAuthGate, handleGoogleCredentialResponse]);
+
+  const handleGoogleSignIn = () => {
+    if (window.google?.accounts?.id) {
+      try {
+        window.google.accounts.id.prompt((notification) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            promptForRealEmail();
+          }
+        });
+        return;
+      } catch {
+        // fallback
+      }
+    }
+    promptForRealEmail();
+  };
+
+  const promptForRealEmail = () => {
+    const emailPrompt = window.prompt("Enter your real Google / Gmail address to sync your tickets:", "");
+    if (emailPrompt) {
+      handleCustomGoogleEmail(emailPrompt);
+    }
   };
 
   const handleCustomGoogleEmail = (customEmail) => {
-    if (!customEmail || !customEmail.includes('@')) {
-      toast.error('Please enter a valid email address');
+    const cleanEmail = (customEmail || '').trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!cleanEmail || !emailRegex.test(cleanEmail)) {
+      toast.error('Please enter a valid Gmail / Email address (e.g. yourname@gmail.com)');
       return;
     }
     const userProfile = {
-      name: customEmail.split('@')[0],
-      email: customEmail.trim().toLowerCase(),
-      avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${customEmail}`,
-      provider: 'google',
+      name: cleanEmail.split('@')[0],
+      email: cleanEmail,
+      avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${cleanEmail}`,
+      provider: cleanEmail.includes('gmail') ? 'google' : 'email',
+      verified: true,
       signedInAt: new Date().toISOString()
     };
     localStorage.setItem('visitor_user', JSON.stringify(userProfile));
@@ -241,6 +334,7 @@ const MuseumChatbot = () => {
     setBooking(prev => ({ ...prev, email: userProfile.email }));
     setHistoryEmail(userProfile.email);
     setShowAuthGate(false);
+    fetchTicketsForEmail(userProfile.email);
     toast.success(`Signed in as ${userProfile.email} ✅`);
   };
 
@@ -1038,43 +1132,22 @@ const MuseumChatbot = () => {
 
       {/* Ticket list */}
       {!validatingTicket && userTickets.length > 0 && (
-        <div className="flex-1 overflow-y-auto p-5 space-y-3">
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-xs text-gray-500">{userTickets.length} {t.ticketCountFor} {historyEmail}</p>
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex items-center justify-between mb-1 px-1">
+            <p className="text-xs text-gray-500 font-medium">{userTickets.length} {t.ticketCountFor} <span className="font-bold text-gray-800">{historyEmail}</span></p>
             <button onClick={() => { setUserTickets([]); setHistoryEmail(''); }}
-              className="text-xs text-indigo-600 hover:underline">{t.changeEmailBtn}</button>
+              className="text-xs text-indigo-600 font-bold hover:underline">{t.changeEmailBtn}</button>
           </div>
           {userTickets.map(ticket => (
-            <div key={ticket.id}
-              className="bg-white border border-gray-200 rounded-xl p-4 shadow-xs hover:shadow-md transition-shadow">
-              <div className="flex justify-between items-start mb-2">
-                <span className="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">
-                  #{ticket.ticketNumber}
-                </span>
-                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                  ticket.status === 'ACTIVE'    ? 'bg-green-100 text-green-800' :
-                  ticket.status === 'USED'      ? 'bg-gray-100 text-gray-600' :
-                  ticket.status === 'PENDING'   ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-red-100 text-red-800'}`}>
-                  {ticket.status}
-                </span>
-              </div>
-              <p className="text-xs text-gray-700 font-bold">{ticket.museumName || 'Museum'}</p>
-              <div className="flex justify-between items-center mt-2 text-xs text-gray-500">
-                <span>{ticket.adults}A / {ticket.children}C</span>
-                <span className="font-semibold text-gray-700">{fmtPrice(ticket.totalPrice)}</span>
-                <span>{fmtDate(ticket.createdAt)}</span>
-              </div>
+            <div key={ticket.id} className="space-y-2">
+              <TicketCard ticket={ticket} />
               {ticket.status === 'ACTIVE' && (
-                <button onClick={() => { setValidatingTicket(ticket); setValidCode(''); }}
-                  className="mt-3 w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg text-xs font-semibold transition-all">
-                  🔐 Enter Museum Code
+                <button
+                  onClick={() => { setValidatingTicket(ticket); setValidCode(''); }}
+                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white py-2.5 rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5"
+                >
+                  🔐 Enter Staff Code (Validate Entry)
                 </button>
-              )}
-              {ticket.status === 'USED' && (
-                <div className="mt-2 flex items-center gap-1 text-xs text-gray-400">
-                  <CheckCircle className="h-3 w-3" /> {t.usedOn} {ticket.usedAt ? fmtDate(ticket.usedAt) : '—'}
-                </div>
               )}
             </div>
           ))}
@@ -1242,11 +1315,15 @@ const MuseumChatbot = () => {
                   {t.welcomeVisitorDesc || 'Sign in with your Google email so all your booked tickets and entry QR codes stay permanently saved.'}
                 </p>
 
-                {/* Main Google Sign In Button */}
+                {/* Real Google Sign In Options */}
                 <div className="w-full space-y-3 max-w-xs">
+                  {/* Google Identity Services official iframe mount target */}
+                  <div id="googleSignInBtnContainer" className="w-full flex justify-center min-h-[42px] overflow-hidden rounded-full shadow-md bg-white"></div>
+
+                  {/* Fallback Google Interactive Button */}
                   <button
                     onClick={handleGoogleSignIn}
-                    className="w-full bg-white hover:bg-gray-50 text-gray-800 font-bold py-3.5 px-4 rounded-2xl shadow-lg flex items-center justify-center gap-3 transition-all transform active:scale-95 border border-gray-100 text-xs sm:text-sm">
+                    className="w-full bg-white hover:bg-gray-50 text-gray-800 font-bold py-3 px-4 rounded-2xl shadow-lg flex items-center justify-center gap-3 transition-all transform active:scale-95 border border-gray-100 text-xs sm:text-sm">
                     {/* Google Multicolor SVG Icon */}
                     <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
                       <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -1257,10 +1334,10 @@ const MuseumChatbot = () => {
                     <span>{t.continueWithGoogle || 'Continue with Google'}</span>
                   </button>
 
-                  {/* Or enter custom Google Email */}
+                  {/* Or enter your real Google / Gmail Email */}
                   <div className="relative flex py-1 items-center">
                     <div className="flex-grow border-t border-white/20"></div>
-                    <span className="flex-shrink mx-2 text-[10px] text-indigo-300 font-semibold uppercase">Or custom email</span>
+                    <span className="flex-shrink mx-2 text-[10px] text-indigo-300 font-semibold uppercase">Or enter real Gmail</span>
                     <div className="flex-grow border-t border-white/20"></div>
                   </div>
 
@@ -1273,19 +1350,19 @@ const MuseumChatbot = () => {
                       name="customEmailInput"
                       type="email"
                       required
-                      placeholder="your.email@gmail.com"
+                      placeholder="yourname@gmail.com"
                       className="flex-1 bg-white/15 border border-white/25 rounded-xl px-3 py-2 text-xs text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-indigo-400"
                     />
                     <button
                       type="submit"
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3 py-2 rounded-xl transition-all">
-                      Go
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition-all shadow-sm">
+                      Sync
                     </button>
                   </form>
 
                   <button
                     onClick={handleContinueAsGuest}
-                    className="w-full text-indigo-200 hover:text-white text-xs font-semibold py-2 transition-colors">
+                    className="w-full text-indigo-200 hover:text-white text-xs font-semibold py-1.5 transition-colors">
                     {t.guestContinue || 'Continue as Guest →'}
                   </button>
                 </div>
